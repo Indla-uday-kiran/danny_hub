@@ -439,7 +439,8 @@ body.light-theme .toggle-switch-state {
         max-width: 75%;
         position: relative;
         top: 0;
-        bottom :0;
+        bottom :0;  
+     
     }
 
     /* Hide the mini-toggle button */
