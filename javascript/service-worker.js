@@ -173,7 +173,7 @@ self.addEventListener('message', (event) => {
             );
             break;
 
-        default:
+        default:cls
             console.warn('Service Worker: Unknown message type:', event.data.type);
             event.source?.postMessage({
                 type: 'UNKNOWN_MESSAGE',
