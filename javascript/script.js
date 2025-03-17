@@ -1,4 +1,4 @@
-// DOM Elements
+// DOM Elements (unchanged)
 const audio = document.getElementById("audio");
 const playBtn = document.getElementById("play");
 const pauseBtn = document.getElementById("pause");
@@ -48,7 +48,11 @@ const voiceBtn = document.getElementById("voice-btn");
 const voiceCmdToggle = document.getElementById("voice-cmd-toggle");
 const resetPositionBtn = document.getElementById("reset-position");
 
-// Album Color Map (unchanged from your original)
+function removeActiveState() {
+    sidebarLinks.forEach(link => link.classList.remove('active'));
+}
+
+// Album Color Map (unchanged)
 const albumColorMap = {
     "images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg": ["#ff6f61", "#ff9b71"],
     "images/Fear-Song-From-Devara-Part-1-Telugu-Telugu-2024-20240519131003-500x500.jpg": ["#4a90e2", "#50e3c2"],
@@ -98,7 +102,7 @@ const albumColorMap = {
     "images/Ala-Vaikunthapurramuloo-Telugu-2019-20191026161003-500x500.jpg": ["#ff4500", "#ff8c00"]
 };
 
-// State Variables
+// State Variables (unchanged except for clarification)
 let originalSongs = [
     { title: "Chuttamalle", file: "songs/[iSongs.info] 03 - Chuttamalle.mp3", cover: "images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg", liked: false, category: "Pop" },
     { title: "Fear song", file: "songs/[iSongs.info] 02 - Fear Song.mp3", cover: "images/Fear-Song-From-Devara-Part-1-Telugu-Telugu-2024-20240519131003-500x500.jpg", liked: false, category: "Rock" },
@@ -143,7 +147,7 @@ let originalSongs = [
     { title: "Idhedho Bagundhe", file: "songs/[iSongs.info] 03 - Idhedho Bagundhe.mp3", cover: "images/mirchi.jpg", liked: false, category: "Pop" },
     { title: "ButtaBomma", file: "songs/[iSongs.info] 04 - ButtaBomma.mp3", cover: "images/buttabomma.jpg", liked: false, category: "Pop" },
     { title: "Dosti", file: "songs/[iSongs.info] 04 - Dosti.mp3", cover: "images/dosti.jpg", liked: false, category: "Pop" },
-    { title: "Hukum", file: "songs/[iSongs.info] 04 - Hukum.mp3", cover: "images/Jailer hukum-Telugu-2023-20230810132954-500x500.jpg", liked: false, category: "Rock" },
+    { title: "Hukum", file: "songs/[iSongs.info] 04 - Hukum.mp3", cover: "images/Jailer  hukum-Telugu-2023-20230810132954-500x500.jpg", liked: false, category: "Rock" },
     { title: "Mehabooba", file: "songs/[iSongs.info] 04 - Mehabooba.mp3", cover: "images/mehabooba.jpg", liked: false, category: "Pop" },
     { title: "Ringa Ringa", file: "songs/[iSongs.info] 04 - Ringa Ringa.mp3", cover: "images/Aarya-2-Telugu-2009-20190822135933-500x500.jpg", liked: false, category: "Dance" },
     { title: "Dheera Dheera", file: "songs/[iSongs.info] 05 - Dheera Dheera.mp3", cover: "images/dheera.jpg", liked: false, category: "Rock" },
@@ -151,9 +155,13 @@ let originalSongs = [
     { title: "Baby Won't You Tell Me", file: "songs/[iSongs.info] 04 - Baby Won't You Tell Me.mp3", cover: "images/baby wont.jpg", liked: false, category: "Pop" },
     { title: "My Love Is Gone", file: "songs/[iSongs.info] 06 - My Love Is Gone.mp3", cover: "images/Aarya-2-Telugu-2009-20190822135933-500x500.jpg", liked: false, category: "Pop" },
     { title: "Ney Ready", file: "songs/[iSongs.info] 06 - Ney Ready.mp3", cover: "images/naready.jpg", liked: false, category: "Rock" },
+    // { title: "Srivalli", file: "songs/[iSongs.info] 02 - Srivalli.mp3", cover: "images/Srivalli-From-Pushpa-The-Rise-Telugu-2021-20211013161003-500x500.jpg", liked: false, category: "Pop" },
+    // { title: "Saami Saami", file: "songs/[iSongs.info] 03 - Saami Saami.mp3", cover: "images/Saami-Saami-From-Pushpa-The-Rise-Telugu-2021-20211028161003-500x500.jpg", liked: false, category: "Dance" },
+    // { title: "Naatu Naatu", file: "songs/[iSongs.info] 01 - Naatu Naatu.mp3", cover: "images/Naatu-Naatu-From-RRR-Telugu-2021-20211110161003-500x500.jpg", liked: false, category: "Dance" },
+    // { title: "Bullet Song", file: "songs/[iSongs.info] 04 - Bullet Song.mp3", cover: "images/The-Warrior-Telugu-2022-20220615161003-500x500.jpg", liked: false, category: "Rock" },
+    // { title: "Ramuloo Ramulaa", file: "songs/[iSongs.info] 05 - Ramuloo Ramulaa.mp3", cover: "images/Ala-Vaikunthapurramuloo-Telugu-2019-20191026161003-500x500.jpg", liked: false, category: "Dance" }
 ];
 
-// Service Worker Registration
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("/service-worker.js", { scope: "/" })
@@ -200,9 +208,9 @@ let currentX = 0, currentY = 0, initialX = 0, initialY = 0;
 let hasBeenDragged = false;
 const defaultMiniPosition = { bottom: "20px", right: "20px", left: "auto", top: "auto" };
 let originalPosition = { ...defaultMiniPosition };
-let wakeRecognition = null;
+let wakeRecognition = null; // To manage the wake word recognition instance
 
-// Utility Functions
+// Utility Functions (unchanged)
 function showToast(message) {
     if (!toast || !toastSong) return;
     if (toastTimeout) clearTimeout(toastTimeout);
@@ -217,6 +225,7 @@ function showToast(message) {
 function speak(text, force = false) {
     if (!window.speechSynthesis) return null;
     window.speechSynthesis.cancel();
+    
     if (force || isVoiceFeedbackEnabled) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.volume = 1;
@@ -234,35 +243,26 @@ function formatTime(seconds) {
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs < 10 ? "0" + secs : secs}`;
 }
-
-// Enhanced safePlay with better error handling and logging
+// Line ~300 (after formatTime)
 function safePlay() {
-    console.log("Attempting to play:", songs[currentSong]?.title, { paused: audio.paused, src: audio.src });
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-        playPromise.then(() => {
-            updatePlayPauseUI(true);
-            if ("mediaSession" in navigator) {
-                navigator.mediaSession.playbackState = "playing";
-            }
-            console.log("Playback successful:", songs[currentSong].title);
-        }).catch(e => {
-            console.error("Playback failed:", e);
-            showToast("Playback error. Tap to retry.");
-            updatePlayPauseUI(false);
-            // Retry on user interaction
-            document.addEventListener("click", function retry() {
-                audio.play().then(() => {
-                    updatePlayPauseUI(true);
-                    if ("mediaSession" in navigator) {
-                        navigator.mediaSession.playbackState = "playing";
-                    }
-                    console.log("Retry successful:", songs[currentSong].title);
-                }).catch(err => console.error("Retry failed:", err));
-                document.removeEventListener("click", retry);
-            }, { once: true });
-        });
-    }
+    audio.play().then(() => {
+        updatePlayPauseUI(true);
+        if ("mediaSession" in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+        }
+    }).catch(e => {
+        console.error("Playback blocked:", e);
+        showToast("Tap to resume playback");
+        document.addEventListener("touchstart", function resume() {
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                if ("mediaSession" in navigator) {
+                    navigator.mediaSession.playbackState = "playing";
+                }
+            });
+            document.removeEventListener("touchstart", resume);
+        }, { once: true });
+    });
 }
 
 function startSleepTimer(minutes) {
@@ -303,47 +303,53 @@ function loadLikedSongs() {
     }
 }
 
+
+// Line ~350 (replace existing loadSong)
 async function loadSong(index) {
     if (index < 0 || index >= songs.length || isLoading) return Promise.reject("Invalid index or loading");
     isLoading = true;
     try {
-        const song = songs[index];
-        console.log("Loading song:", song.title);
-        const response = await fetch(song.file, { method: "HEAD" });
+        const response = await fetch(songs[index].file, { method: "HEAD" });
         if (!response.ok) throw new Error("File not found");
 
         currentSong = index;
-        audio.src = song.file;
-        songTitle.textContent = song.title;
+        audio.src = songs[index].file;
+        songTitle.textContent = songs[index].title;
 
-        const coverSrc = song.cover || "images/default-cover.jpg";
+        // Set album cover
+        const coverSrc = songs[index].cover || "images/default-cover.jpg";
         albumCover.src = coverSrc;
         miniCover.src = coverSrc;
-        albumCover.onerror = () => albumCover.src = "images/default-cover.jpg";
-        miniCover.onerror = () => miniCover.src = "images/default-cover.jpg";
+        albumCover.onerror = () => {
+            albumCover.src = "images/default-cover.jpg";
+        };
+        miniCover.onerror = () => {
+            miniCover.src = "images/default-cover.jpg";
+        };
 
+        // Media Session API
         if ("mediaSession" in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: song.title,
+                title: songs[index].title,
                 artist: "Unknown Artist",
                 album: "Danny Hub Playlist",
                 artwork: [{ src: coverSrc, sizes: "500x500", type: "image/jpeg" }]
             });
-            // Ensure action handlers are set every load
             navigator.mediaSession.setActionHandler("play", () => safePlay());
             navigator.mediaSession.setActionHandler("pause", () => {
                 audio.pause();
                 updatePlayPauseUI(false);
-                console.log("Paused via media session");
             });
             navigator.mediaSession.setActionHandler("nexttrack", () => nextBtn.click());
             navigator.mediaSession.setActionHandler("previoustrack", () => prevBtn.click());
+            navigator.mediaSession.playbackState = "playing";
         }
 
         seekBar.value = 0;
         document.documentElement.style.setProperty("--progress", "0%");
-        likeBtn.textContent = song.liked ? "♥" : "♡";
-        likeBtn.classList.toggle("liked", song.liked);
+        likeBtn.textContent = songs[index].liked ? "♥" : "♡";
+        likeBtn.classList.toggle("liked", songs[index].liked);
+        songTitle.style.animation = "fadeIn 0.3s";
         currentTimeDisplay.textContent = "0:00";
 
         return new Promise((resolve, reject) => {
@@ -353,14 +359,38 @@ async function loadSong(index) {
                 audio.playbackRate = playbackSpeed;
                 initializePlayer();
                 updatePlaylistHighlight();
-                const colors = albumColorMap[song.cover] || ["#00c6ff", "#0072ff"];
+                const colors = albumColorMap[songs[index].cover] || ["#00c6ff", "#0072ff"];
                 document.documentElement.style.setProperty("--bg-start", colors[0]);
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
                 skipCount = 0;
+
+                // Enhanced preloading with debug logs
+                const nextIndex = repeatMode === 1 ? index : (index + 1) % songs.length;
+                if (nextIndex !== index && nextIndex < songs.length) {
+                    const nextAudio = new Audio(songs[nextIndex].file);
+                    nextAudio.preload = "auto";
+                    nextAudio.volume = 0; // Silent preload
+                    nextAudio.play()
+                        .then(() => {
+                            nextAudio.pause();
+                            nextAudio.currentTime = 0;
+                            console.log("Next song buffered successfully:", songs[nextIndex].title);
+                        })
+                        .catch(e => console.error("Preload play error for", songs[nextIndex].title, ":", e));
+                    nextAudio.onloadedmetadata = () => console.log("Next song metadata loaded:", songs[nextIndex].title);
+                    const nextImg = new Image();
+                    nextImg.src = songs[nextIndex].cover || "images/default-cover.jpg";
+                    nextImg.onload = () => console.log("Next image loaded:", songs[nextIndex].title);
+                    nextImg.onerror = () => console.error("Next image load failed:", songs[nextIndex].cover);
+                    console.log("Preloading next song:", songs[nextIndex].title);
+                } else {
+                    console.log("No preloading: repeatMode =", repeatMode, "nextIndex =", nextIndex);
+                }
+
                 resolve();
             };
             audio.onerror = () => {
-                console.error("Metadata load error:", song.title);
+                console.error("Audio metadata error for:", songs[index].title);
                 reject(new Error("Audio metadata error"));
             };
         });
@@ -398,7 +428,6 @@ function updatePlayPauseUI(isPlaying) {
     pauseBtn.style.display = isPlaying ? "inline" : "none";
     equalizer.style.display = isPlaying ? "flex" : "none";
     albumCover.classList.toggle("playing", isPlaying);
-    console.log("UI updated:", { isPlaying });
 }
 
 function populatePlaylist() {
@@ -411,7 +440,16 @@ function populatePlaylist() {
         li.draggable = true;
 
         li.addEventListener("click", () => {
-            loadSong(index).then(() => safePlay());
+            loadSong(index).then(() => {
+                audio.play().then(() => {
+                    updatePlayPauseUI(true);
+                    showToast(`Now Playing: ${songs[index].title}`);
+                    if (isVoiceFeedbackEnabled) speak(`Playing ${songs[index].title}`);
+                }).catch(e => {
+                    console.error("Play error:", e);
+                    showToast("Playback blocked. Please interact with the page.");
+                });
+            });
         });
 
         li.addEventListener("contextmenu", (e) => {
@@ -450,7 +488,7 @@ function setActiveSidebarButton(button) {
     activeSidebarBtn = button;
 }
 
-// Voice Activation Functions
+// Updated Voice Activation Functions
 function startVoiceActivation() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -458,6 +496,7 @@ function startVoiceActivation() {
         return;
     }
 
+    // Stop any existing recognition to avoid overlap
     if (wakeRecognition) {
         wakeRecognition.stop();
         wakeRecognition = null;
@@ -470,38 +509,45 @@ function startVoiceActivation() {
 
     wakeRecognition.onresult = (event) => {
         const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-        if (transcript.includes("danny") || transcript.includes("hey danny") || transcript.includes("danny wakeup") || transcript.includes("danny active") || transcript.includes("danny start")) {
-            wakeRecognition.stop();
-            listenForCommand();
+        if (transcript.includes("danny") || transcript.includes("hey danny") || transcript.includes("danny wakeup")  || transcript.includes("danny active") || transcript.includes("danny start") ) {
+            wakeRecognition.stop(); // Stop listening for wake word
+            listenForCommand();     // Start listening for the command
         }
     };
 
     wakeRecognition.onerror = (e) => {
         console.error("Wake word recognition error:", e.error);
         if (e.error !== "aborted" && !isVoiceActive) {
+            // Restart after a short delay if not aborted and not in command mode
             setTimeout(() => {
-                if (!isVoiceActive && !wakeRecognition?.started) startVoiceActivation();
+                if (!isVoiceActive && !wakeRecognition?.started) {
+                    startVoiceActivation();
+                }
             }, 1000);
         }
     };
 
     wakeRecognition.onend = () => {
+        // Only restart if not in command mode and not explicitly stopped
         if (!isVoiceActive && !wakeRecognition?.aborted) {
             setTimeout(() => {
-                if (!isVoiceActive && !wakeRecognition?.started) startVoiceActivation();
+                if (!isVoiceActive && !wakeRecognition?.started) {
+                    startVoiceActivation();
+                }
             }, 500);
         }
     };
 
     try {
         wakeRecognition.start();
-        wakeRecognition.started = true;
+        wakeRecognition.started = true; // Custom flag to track state
         console.log("Voice activation started");
         showToast("Voice activation started. Say 'Danny' to give a command.");
     } catch (e) {
         console.error("Failed to start wake recognition:", e);
         showToast("Failed to start voice activation");
         wakeRecognition = null;
+        // Retry after failure
         setTimeout(() => {
             if (!isVoiceActive) startVoiceActivation();
         }, 1000);
@@ -512,7 +558,7 @@ function listenForCommand() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         showToast("Voice recognition not supported");
-        startVoiceActivation();
+        startVoiceActivation(); // Restart wake word listening
         return;
     }
 
@@ -547,9 +593,14 @@ function listenForCommand() {
         voiceBtn.disabled = false;
         isVoiceActive = false;
         if (wasPlaying) {
-            setTimeout(() => safePlay(), 1000);
+            setTimeout(() => {
+                audio.play().then(() => updatePlayPauseUI(true)).catch(e => {
+                    console.error("Play error:", e);
+                    showToast("Playback error. Please interact with the page.");
+                });
+            }, 1000);
         }
-        startVoiceActivation();
+        startVoiceActivation(); // Restart wake word listening after error
     };
 
     recognition.onend = () => {
@@ -558,9 +609,14 @@ function listenForCommand() {
         voiceBtn.disabled = false;
         isVoiceActive = false;
         if (wasPlaying) {
-            setTimeout(() => safePlay(), 1000);
+            setTimeout(() => {
+                audio.play().then(() => updatePlayPauseUI(true)).catch(e => {
+                    console.error("Play error:", e);
+                    showToast("Playback error. Please interact with the page.");
+                });
+            }, 1000);
         }
-        startVoiceActivation();
+        startVoiceActivation(); // Always restart wake word listening
     };
 
     try {
@@ -572,10 +628,9 @@ function listenForCommand() {
         voiceBtn.style.backgroundColor = "";
         voiceBtn.style.color = "";
         voiceBtn.disabled = false;
-        startVoiceActivation();
+        startVoiceActivation(); // Restart wake word listening on failure
     }
 }
-
 function listenForCommandWithTimeout(timeoutMs) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -618,7 +673,9 @@ function listenForCommandWithTimeout(timeoutMs) {
         voiceBtn.disabled = false;
         isVoiceActive = false;
         if (wasPlaying) {
-            setTimeout(() => safePlay(), 1000);
+            setTimeout(() => {
+                audio.play().then(() => updatePlayPauseUI(true)).catch(() => showToast("Playback error"));
+            }, 1000);
         }
         startVoiceActivation();
     };
@@ -630,7 +687,9 @@ function listenForCommandWithTimeout(timeoutMs) {
         voiceBtn.disabled = false;
         isVoiceActive = false;
         if (wasPlaying) {
-            setTimeout(() => safePlay(), 1000);
+            setTimeout(() => {
+                audio.play().then(() => updatePlayPauseUI(true)).catch(() => showToast("Playback error"));
+            }, 1000);
         }
         startVoiceActivation();
     };
@@ -648,7 +707,7 @@ function listenForCommandWithTimeout(timeoutMs) {
     }
 }
 
-// Event Listeners
+// Event Listeners (unchanged except voiceBtn)
 menuBtn?.addEventListener("click", () => {
     if (sidebar) sidebar.style.transform = "translateX(0)";
     if (closeSidebar) closeSidebar.style.display = "block";
@@ -660,7 +719,17 @@ closeSidebar?.addEventListener("click", () => {
     if (playlistContainer) playlistContainer.style.display = "none";
 });
 
-playBtn?.addEventListener("click", () => safePlay());
+playBtn?.addEventListener("click", () => {
+    audio.play().then(() => {
+        updatePlayPauseUI(true);
+        isSleepTimerPaused = false;
+        showToast(`Now playing: ${songs[currentSong].title}`);
+        if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
+    }).catch(e => {
+        console.error("Play error:", e);
+        showToast("Playback blocked. Please interact with the page.");
+    });
+});
 
 pauseBtn?.addEventListener("click", () => {
     audio.pause();
@@ -675,18 +744,36 @@ nextBtn?.addEventListener("click", () => {
     }
     if (queue.length > 0) {
         const nextSong = queue.shift();
-        currentSong = songs.findIndex(song => song.title === nextSong.title);
+        const index = songs.findIndex(song => song.title === nextSong.title);
+        currentSong = index;
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
     } else {
         currentSong = (currentSong + 1) % songs.length;
     }
-    loadSong(currentSong).then(() => safePlay());
+    loadSong(currentSong).then(() => {
+        audio.play().then(() => {
+            updatePlayPauseUI(true);
+            showToast(`Now Playing: ${songs[currentSong].title}`);
+            skipCount = 0;
+        }).catch(e => {
+            console.error("Play error:", e);
+            showToast("Playback error. Please interact with the page.");
+        });
+    }).catch(() => skipCount++);
 });
 
 prevBtn?.addEventListener("click", () => {
     currentSong = (currentSong - 1 + songs.length) % songs.length;
-    loadSong(currentSong).then(() => safePlay());
+    loadSong(currentSong).then(() => {
+        audio.play().then(() => {
+            updatePlayPauseUI(true);
+            showToast(`Now Playing: ${songs[currentSong].title}`);
+        }).catch(e => {
+            console.error("Play error:", e);
+            showToast("Playback error. Please interact with the page.");
+        });
+    });
 });
 
 audio?.addEventListener("timeupdate", () => {
@@ -696,9 +783,9 @@ audio?.addEventListener("timeupdate", () => {
     document.documentElement.style.setProperty("--progress", `${progress}%`);
 });
 
+// Line ~1100 (replace existing audio.ended listener)
 audio?.addEventListener("ended", () => {
     console.log("Song ended:", { 
-        title: songs[currentSong].title,
         currentSong, 
         repeatMode, 
         songsLength: songs.length, 
@@ -709,29 +796,64 @@ audio?.addEventListener("ended", () => {
     if (songs.length === 0) {
         showToast("No songs available");
         updatePlayPauseUI(false);
+        console.log("No songs available, stopping playback");
         return;
     }
 
+    const playNext = () => {
+        console.log("playNext called for song index:", currentSong);
+        loadSong(currentSong)
+            .then(() => {
+                console.log("loadSong resolved, attempting to play:", songs[currentSong].title);
+                safePlay();
+                showToast(`Now Playing: ${songs[currentSong].title}`);
+                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
+            })
+            .catch(e => {
+                console.error("Next song load error:", e, "Song:", songs[currentSong].title);
+                showToast("Error loading next song");
+                if (songs.length > 1 && skipCount < maxSkips) {
+                    skipCount++;
+                    currentSong = (currentSong + 1) % songs.length;
+                    console.log("Skipping to next song due to error, new index:", currentSong);
+                    playNext();
+                }
+            });
+    };
+
     if (repeatMode === 1) {
+        console.log("Repeat One: Resetting current song");
         audio.currentTime = 0;
         safePlay();
     } else if (repeatMode === 2) {
         currentSong = (currentSong + 1) % songs.length;
-        loadSong(currentSong).then(() => safePlay());
+        console.log("Repeat All: Moving to next song, index:", currentSong);
+        playNext();
     } else if (queue.length > 0) {
         const nextSong = queue.shift();
         currentSong = songs.findIndex(song => song.title === nextSong.title);
-        loadSong(currentSong).then(() => safePlay());
+        console.log("Queue: Playing next queued song, index:", currentSong);
+        playNext();
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
-        loadSong(currentSong).then(() => safePlay());
+        console.log("Random: Selected random song, index:", currentSong);
+        playNext();
     } else if ((currentSong + 1) < songs.length) {
         currentSong++;
-        loadSong(currentSong).then(() => safePlay());
+        console.log("No Repeat: Advancing to next song, index:", currentSong);
+        playNext();
     } else {
+        console.log("End of playlist reached");
         updatePlayPauseUI(false);
         showToast("Playlist ended");
         if (isVoiceFeedbackEnabled) speak("Playlist ended");
+    }
+
+    // Update Media Session state
+    if ("mediaSession" in navigator) {
+        const newState = audio.paused ? "paused" : "playing";
+        navigator.mediaSession.playbackState = newState;
+        console.log("Media Session updated to:", newState);
     }
 });
 
@@ -802,8 +924,10 @@ libraryBtn?.addEventListener("click", () => {
 });
 
 playlistBtn?.addEventListener("click", () => {
-    songs = [...originalSongs];
-    if (playlistContainer) playlistContainer.style.display = "block";
+    songs = [...originalSongs]; // Reset to full list
+    if (playlistContainer) {
+        playlistContainer.style.display = "block"; // Always show, no toggle
+    }
     setActiveSidebarButton(playlistBtn);
     populatePlaylist();
 });
@@ -1048,7 +1172,7 @@ voiceCmdToggle?.addEventListener("click", () => {
 voiceBtn?.addEventListener("click", () => {
     if (isVoiceActive) {
         if (wakeRecognition) {
-            wakeRecognition.aborted = true;
+            wakeRecognition.aborted = true; // Mark as intentionally stopped
             wakeRecognition.stop();
             wakeRecognition = null;
         }
@@ -1063,10 +1187,9 @@ voiceBtn?.addEventListener("click", () => {
             wakeRecognition.stop();
             wakeRecognition = null;
         }
-        listenForCommandWithTimeout(7000);
+        listenForCommandWithTimeout(7000); // Listen for 7 seconds
     }
 });
-
 function handleVoiceCommand(command) {
     if (!command.toLowerCase().startsWith("danny")) {
         const utterance = speak("Please start with 'Danny'", true);
@@ -1075,15 +1198,15 @@ function handleVoiceCommand(command) {
     }
 
     const action = command.replace("danny", "").trim().toLowerCase();
-    console.log("Recognized action:", action);
+    console.log("Recognized action:", action); // Debug: See what’s being recognized
 
     const commands = {
         play: ["play", "start", "resume"],
         pause: ["pause", "halt"],
-        stop: ["stop"],
+        stop: ["stop"], // Distinct from pause
         next: ["next", "skip", "forward"],
         previous: ["previous", "back", "rewind song"],
-        playNext: ["play next", "queue next"],
+        playNext: ["play next", "queue next"], // New: Queue the next song
         shuffle: ["shuffle", "random"],
         repeat: ["repeat", "loop"],
         like: ["like", "favorite", "heart"],
@@ -1120,15 +1243,16 @@ function handleVoiceCommand(command) {
         cancelSleep: ["cancel sleep timer", "cancel sleep", "cancel"]
     };
 
+    // Find the best matching command
     let matchedKey = null;
     let maxScore = -1;
     for (const [key, keywords] of Object.entries(commands)) {
         for (const kw of keywords) {
             let score = 0;
             if (action === kw) {
-                score = 100;
+                score = 100; // Exact match
             } else if (action.includes(kw)) {
-                score = 50 + kw.length;
+                score = 50 + kw.length; // Partial match with length bonus
             }
             if (score > maxScore) {
                 maxScore = score;
@@ -1138,7 +1262,7 @@ function handleVoiceCommand(command) {
     }
 
     if (matchedKey && maxScore >= 50) {
-        console.log("Matched command:", matchedKey);
+        console.log("Matched command:", matchedKey); // Debug: Confirm which command is matched
         const respond = (message, speakMessage = message) => {
             showToast(message);
             if (isVoiceFeedbackEnabled) speak(speakMessage);
@@ -1244,8 +1368,12 @@ function handleVoiceCommand(command) {
                 shortcutBtn?.click();
                 break;
             case "hideShortcuts":
-                shortcutClose?.click();
-                respond("Shortcuts closed");
+                if (shortcutClose) {
+                    shortcutClose.click();
+                    respond("Shortcuts closed");
+                } else {
+                    respond("Shortcuts not open or button not found");
+                }
                 break;
             case "library":
                 libraryBtn?.click();
@@ -1274,73 +1402,149 @@ function handleVoiceCommand(command) {
                 }
                 break;
             case "clearQueue":
-                queue = [];
-                respond("Queue cleared");
+                if (queue.length > 0) {
+                    queue = [];
+                    respond("Queue cleared");
+                } else {
+                    respond("Queue is already empty");
+                }
                 break;
             case "restart":
-                audio.currentTime = 0;
-                safePlay();
+                if (audio.src) {
+                    audio.currentTime = 0;
+                    audio.play().then(() => {
+                        updatePlayPauseUI(true);
+                        respond(`Restarted: ${songs[currentSong].title}`);
+                    }).catch(e => {
+                        console.error("Play error:", e);
+                        respond("Playback error. Please interact with the page.");
+                    });
+                } else {
+                    respond("No song loaded to restart");
+                }
                 break;
             case "sleepTimer":
                 const timeMatch = action.match(/(\d+(\.\d+)?)/);
                 if (timeMatch) {
                     const minutes = parseFloat(timeMatch[0]);
-                    sleepTimer.value = minutes;
-                    sleepTimer.dispatchEvent(new Event("change"));
+                    if (minutes > 0 && minutes <= 120) {
+                        let optionExists = false;
+                        for (let option of sleepTimer.options) {
+                            if (parseFloat(option.value) === minutes) {
+                                optionExists = true;
+                                break;
+                            }
+                        }
+                        if (!optionExists) {
+                            const newOption = document.createElement("option");
+                            newOption.value = minutes;
+                            newOption.text = `${minutes} Minutes`;
+                            sleepTimer.appendChild(newOption);
+                        }
+                        sleepTimer.value = minutes;
+                        sleepTimer.dispatchEvent(new Event("change"));
+                    } else {
+                        respond("Please specify a time between 1 and 120 minutes");
+                    }
                 } else {
                     respond("Please specify a time in minutes");
                 }
                 break;
             case "fastForward":
-                audio.currentTime += 10;
-                respond("Fast forwarded 10 seconds");
+                const ffSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+                if (!isNaN(audio.duration)) {
+                    audio.currentTime = Math.min(audio.duration, audio.currentTime + ffSeconds);
+                    respond(`Fast forwarded ${ffSeconds} seconds`);
+                } else {
+                    respond("No song loaded");
+                }
                 break;
             case "rewind":
-                audio.currentTime -= 10;
-                respond("Rewound 10 seconds");
+                const rwSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+                if (!isNaN(audio.duration)) {
+                    audio.currentTime = Math.max(0, audio.currentTime - rwSeconds);
+                    respond(`Rewound ${rwSeconds} seconds`);
+                } else {
+                    respond("No song loaded");
+                }
                 break;
             case "voiceOff":
                 if (isVoiceFeedbackEnabled) voiceCmdToggle?.click();
+                else respond("Voice feedback is already off", "Voice feedback is already off", true);
                 break;
             case "voiceOn":
                 if (!isVoiceFeedbackEnabled) voiceCmdToggle?.click();
+                else respond("Voice feedback is already on");
                 break;
             case "setVolume":
                 const volMatch = action.match(/(\d+)/);
                 if (volMatch) {
-                    const volume = parseInt(volMatch[0]) / 100;
-                    audio.volume = volume;
-                    volumeControl.value = volume;
-                    volumeIcon.textContent = volume === 0 ? "🔇" : "🔊";
-                    document.documentElement.style.setProperty("--volume-progress", `${volume * 100}%`);
-                    respond(`Volume set to ${volMatch[0]}%`);
+                    const volume = parseInt(volMatch[0]);
+                    if (volume >= 0 && volume <= 100) {
+                        audio.volume = volume / 100;
+                        volumeControl.value = audio.volume;
+                        volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+                        document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+                        respond(`Volume set to ${volume}%`);
+                    } else {
+                        respond("Please specify a volume between 0 and 100");
+                    }
+                } else {
+                    respond("Please specify a volume percentage");
                 }
                 break;
             case "whatIsPlaying":
-                respond(`Now playing: ${songs[currentSong].title}`);
+                const currentTitle = songs[currentSong]?.title || "No song playing";
+                respond(`Now playing: ${currentTitle}`);
                 break;
             case "timeLeft":
-                respond(`Time left: ${formatTime(audio.duration - audio.currentTime)}`);
+                if (isNaN(audio.duration) || isNaN(audio.currentTime)) {
+                    respond("No song is currently playing");
+                } else {
+                    const timeRemaining = audio.duration - audio.currentTime;
+                    const formattedTime = formatTime(timeRemaining);
+                    respond(`Time left: ${formattedTime}`);
+                }
                 break;
             case "duration":
-                respond(`Duration: ${formatTime(audio.duration)}`);
+                if (isNaN(audio.duration)) {
+                    respond("No song is currently playing");
+                } else {
+                    const formattedDuration = formatTime(audio.duration);
+                    respond(`Duration: ${formattedDuration}`);
+                }
                 break;
             case "listQueue":
-                respond(queue.length > 0 ? `Queue: ${queue.map(s => s.title).join(", ")}` : "Queue is empty");
+                if (queue.length === 0) {
+                    respond("Queue is empty");
+                } else {
+                    const queueList = queue.map((song, index) => `${index + 1}. ${song.title}`).join(", ");
+                    respond(`Queue: ${queueList}`);
+                }
                 break;
             case "setSpeed":
                 const speedMatch = action.match(/(\d*\.?\d+)/);
                 if (speedMatch) {
-                    playbackSpeed = parseFloat(speedMatch[0]);
-                    audio.playbackRate = playbackSpeed;
-                    speedControl.value = playbackSpeed;
-                    respond(`Speed set to ${playbackSpeed}x`);
+                    const speed = parseFloat(speedMatch[0]);
+                    if (speed >= 0.5 && speed <= 2) {
+                        speedControl.value = speed;
+                        speedControl.dispatchEvent(new Event("change"));
+                    } else {
+                        respond("Please specify a speed between 0.5 and 2");
+                    }
+                } else {
+                    respond("Please specify a playback speed");
                 }
                 break;
             case "filter":
-                const category = action.match(/pop|rock|dance|all/i)?.[0] || "all";
-                categoryFilter.value = category;
-                categoryFilter.dispatchEvent(new Event("change"));
+                const categoryMatch = action.match(/pop|rock|dance|all/i);
+                if (categoryMatch) {
+                    const category = categoryMatch[0].toLowerCase();
+                    categoryFilter.value = category === "all" ? "all" : category.charAt(0).toUpperCase() + category.slice(1);
+                    categoryFilter.dispatchEvent(new Event("change"));
+                } else {
+                    respond("Please specify a category: Pop, Rock, Dance, or All");
+                }
                 break;
             case "cancelSleep":
                 if (sleepTimerInterval) {
@@ -1351,7 +1555,7 @@ function handleVoiceCommand(command) {
                     sleepTimer.value = "0";
                     respond("Sleep Timer Canceled");
                 } else {
-                    respond("No active sleep timer");
+                    respond("No active sleep timer to cancel");
                 }
                 break;
         }
@@ -1361,160 +1565,714 @@ function handleVoiceCommand(command) {
     const utterance = speak("Command not recognized", true);
     if (utterance) utterance.onend = () => showToast("Command not recognized");
 }
-
 function handlePlaySongCommand(action) {
+    // Extract song name by removing common keywords
     const keywordsToRemove = ["danny", "play", "song", "the", "now", "please"];
     let songName = action.toLowerCase().trim();
+    if (!songName) {
+        showToast("Please specify a song name");
+        if (isVoiceFeedbackEnabled) speak("Please specify a song name");
+        return;
+    }
+
     keywordsToRemove.forEach(keyword => {
         songName = songName.replace(new RegExp(`\\b${keyword}\\b`, "gi"), "").trim();
     });
 
-    const songIndex = songs.findIndex(s => s.title.toLowerCase().includes(songName));
+    // Simple Levenshtein distance function for typo tolerance
+    const levenshteinDistance = (a, b) => {
+        const dp = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
+        for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+        for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+        for (let i = 1; i <= a.length; i++) {
+            for (let j = 1; j <= b.length; j++) {
+                const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1, // deletion
+                    dp[i][j - 1] + 1, // insertion
+                    dp[i - 1][j - 1] + indicator // substitution
+                );
+            }
+        }
+        return dp[a.length][b.length];
+    };
+
+    // Enhanced flexible matching function with scoring
+    const findSongIndex = (songList, query) => {
+        if (!songList.length) return -1;
+
+        const cleanQuery = query.replace(/[^a-z0-9\s]/g, "").trim();
+        if (!cleanQuery) return -1;
+
+        const queryWords = cleanQuery.split(/\s+/).filter(w => w.length > 1);
+
+        let bestMatch = { index: -1, score: -1 };
+        const titleCache = new Map(); // Cache cleaned titles
+
+        for (let i = 0; i < songList.length; i++) {
+            const song = songList[i];
+            const titleLower = song.title.toLowerCase();
+            let cleanTitle = titleCache.get(titleLower);
+            if (!cleanTitle) {
+                cleanTitle = titleLower.replace(/[^a-z0-9\s]/g, "");
+                titleCache.set(titleLower, cleanTitle);
+            }
+
+            // Quick exact match check
+            if (cleanTitle === cleanQuery) return i;
+
+            const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 1);
+            let score = 0;
+
+            // Word overlap score
+            const matchingWords = queryWords.filter(qw => titleWords.includes(qw)).length;
+            score += matchingWords * 10; // High weight for word matches
+
+            // Containment bonus
+            if (cleanTitle.includes(cleanQuery)) score += 5;
+
+            // Levenshtein distance for typo tolerance (normalized)
+            const distance = levenshteinDistance(cleanQuery, cleanTitle);
+            const maxLen = Math.max(cleanQuery.length, cleanTitle.length);
+            const similarity = 1 - (distance / maxLen);
+            score += similarity * 3; // Lower weight for similarity
+
+            if (score > bestMatch.score) {
+                bestMatch = { index: i, score };
+            }
+        }
+
+        // Threshold to consider a match valid (adjustable)
+        return bestMatch.score >= 5 ? bestMatch.index : -1;
+    };
+
+    let songIndex = findSongIndex(songs, songName);
+
+    // If not found in current list, search full list
+    if (songIndex === -1) {
+        songIndex = findSongIndex(originalSongs, songName);
+        if (songIndex !== -1) {
+            // Add to current list only if not already present
+            const songToAdd = originalSongs[songIndex];
+            const existsInSongs = songs.some(s => s.title === songToAdd.title);
+            if (!existsInSongs) {
+                songs.push(songToAdd);
+                songIndex = songs.length - 1;
+                populatePlaylist();
+            } else {
+                songIndex = songs.findIndex(s => s.title === songToAdd.title);
+            }
+        }
+    }
+
     if (songIndex !== -1) {
-        currentSong = songIndex;
-        loadSong(currentSong).then(() => safePlay());
+        loadSong(songIndex).then(() => {
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                showToast(`Now Playing: ${songs[songIndex].title}`);
+                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[songIndex].title}`);
+            }).catch(e => {
+                console.error("Play error:", e);
+                showToast("Failed to play the song");
+                if (isVoiceFeedbackEnabled) speak("Failed to play the song");
+            });
+        }).catch(e => {
+            console.error("Load error:", e);
+            showToast("Error loading song");
+            if (isVoiceFeedbackEnabled) speak("Error loading song");
+        });
     } else {
-        showToast(`Song "${songName}" not found`);
-        if (isVoiceFeedbackEnabled) speak(`Song "${songName}" not found`);
+        // Suggest similar songs with scoring
+        const closeMatches = originalSongs
+            .map(song => {
+                const cleanTitle = song.title.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+                const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 1);
+                const queryWords = songName.split(/\s+/).filter(w => w.length > 1);
+                const matchingWords = queryWords.filter(qw => titleWords.includes(qw)).length;
+                const distance = levenshteinDistance(songName, cleanTitle);
+                const maxLen = Math.max(songName.length, cleanTitle.length);
+                const similarity = 1 - (distance / maxLen);
+                const score = (matchingWords * 10) + (similarity * 3);
+                return { title: song.title, score };
+            })
+            .filter(match => match.score >= 5) // Minimum score threshold for suggestions
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3) // Limit to top 3 suggestions
+            .map(match => match.title);
+
+        if (closeMatches.length > 0) {
+            const suggestionText = `Did you mean: ${closeMatches.join(", ")}? Try saying the full name.`;
+            showToast(`Song "${songName}" not found. ${suggestionText}`);
+            if (isVoiceFeedbackEnabled) speak(`Song ${songName} not found. ${suggestionText}`);
+        } else {
+            showToast(`Song "${songName}" not found. No similar songs available.`);
+            if (isVoiceFeedbackEnabled) speak(`Song ${songName} not found. No similar songs available.`);
+        }
     }
 }
 
-// Debounce Utility
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+// Update handleVoiceCommand to trigger this correctly
+function handleVoiceCommand(command) {
+    // Ensure command is a string and convert to lowercase for consistency
+    if (typeof command !== "string" || command.trim() === "") {
+        console.log("Invalid command received:", command);
+        const utterance = speak("No command detected", true);
+        if (utterance) utterance.onend = () => showToast("No command detected");
+        return;
+    }
+
+    const normalizedCommand = command.toLowerCase().trim();
+    console.log("Processing command:", normalizedCommand); // Debug: Log the exact command
+
+    // Check if command starts with "danny"
+    if (!normalizedCommand.startsWith("danny")) {
+        console.log("Command rejected: Does not start with 'Danny'");
+        const utterance = speak("Please start with 'Danny'", true);
+        if (utterance) utterance.onend = () => showToast("Please start with 'Danny'");
+        return;
+    }
+
+    // Extract action by removing "danny" and trimming
+    const action = normalizedCommand.replace("danny", "").trim();
+    console.log("Action extracted:", action); // Debug: Log the action part
+
+    if (!action) {
+        console.log("No action specified after 'Danny'");
+        const utterance = speak("Please specify a command after Danny", true);
+        if (utterance) utterance.onend = () => showToast("Please specify a command");
+        return;
+    }
+
+    // Define command keywords
+    const commands = {
+        play: ["play", "start", "resume"],
+        pause: ["pause", "stop", "halt"],
+        next: ["next", "skip", "forward"],
+        previous: ["previous", "back", "prev"],
+        shuffle: ["shuffle", "random"],
+        repeat: ["repeat", "loop"],
+        like: ["like", "favorite", "heart"],
+        mini: ["mini", "mini player"],
+        theme: ["theme", "mode"],
+        volumeUp: ["volume up", "louder"],
+        volumeDown: ["volume down", "quieter"],
+        mute: ["mute", "silent"],
+        unmute: ["unmute", "sound on"],
+        home: ["home", "main"],
+        player: ["player", "back to player"],
+        search: ["search", "find"],
+        help: ["help", "commands", "shortcuts"],
+        hideShortcuts: ["hide shortcuts", "close shortcuts"],
+        library: ["library", "liked songs"],
+        sidebar: ["sidebar", "menu"],
+        reset: ["reset", "reset mini"],
+        queue: ["queue", "add to queue"],
+        clearQueue: ["clear queue", "empty queue"],
+        restart: ["restart", "replay"],
+        sleepTimer: ["set sleep timer", "sleep timer", "sleep"],
+        fastForward: ["fast forward", "skip ahead"],
+        rewind: ["rewind", "go back"],
+        voiceOff: ["off voice feedback", "disable voice", "voice off"],
+        voiceOn: ["on voice feedback", "enable voice", "voice on"],
+        setVolume: ["set volume", "volume to"],
+        whatIsPlaying: ["what is playing", "now playing", "current song"],
+        timeLeft: ["how much time is left", "time remaining", "time left"],
+        duration: ["what’s the duration", "song length", "duration"],
+        listQueue: ["list queue", "what’s in queue", "queue list"],
+        setSpeed: ["set speed", "speed to"],
+        filter: ["filter", "category"],
+        cancelSleep: ["cancel sleep timer", "cancel sleep", "cancel"]
     };
+
+    // Find matching command
+    let matchedCommand = null;
+    for (const [key, keywords] of Object.entries(commands)) {
+        if (keywords.some(kw => action === kw || action.includes(kw))) {
+            matchedCommand = key;
+            console.log("Matched command:", matchedCommand); // Debug: Confirm match
+            break;
+        }
+    }
+
+    if (!matchedCommand) {
+        console.log("No command matched for action:", action);
+        const utterance = speak("Command not recognized", true);
+        if (utterance) utterance.onend = () => showToast("Command not recognized");
+        return;
+    }
+
+    // Execute the matched command
+    switch (matchedCommand) {
+        case "play":
+            if (action.includes("song") || action.split(" ").length > 1) { // Check if it might be a song request
+                handlePlaySongCommand(action);
+            } else {
+                playBtn?.click();
+            }
+            break;
+        case "pause":
+            pauseBtn?.click();
+            break;
+        case "next":
+            nextBtn?.click();
+            break;
+        case "previous":
+            prevBtn?.click();
+            break;
+        case "shuffle":
+            randomBtn?.click();
+            break;
+        case "repeat":
+            repeatBtn?.click();
+            break;
+        case "like":
+            likeBtn?.click();
+            break;
+        case "mini":
+            miniToggle?.click();
+            break;
+        case "theme":
+            themeToggle?.click();
+            break;
+        case "volumeUp":
+            audio.volume = Math.min(1, audio.volume + 0.1);
+            volumeControl.value = audio.volume;
+            volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+            document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+            showToast("Volume Up");
+            if (isVoiceFeedbackEnabled) speak("Volume Up");
+            break;
+        case "volumeDown":
+            audio.volume = Math.max(0, audio.volume - 0.1);
+            volumeControl.value = audio.volume;
+            volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+            document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+            showToast("Volume Down");
+            if (isVoiceFeedbackEnabled) speak("Volume Down");
+            break;
+        case "mute":
+            audio.volume = 0;
+            volumeControl.value = 0;
+            volumeIcon.textContent = "🔇";
+            document.documentElement.style.setProperty("--volume-progress", "0%");
+            showToast("Muted");
+            if (isVoiceFeedbackEnabled) speak("Muted");
+            break;
+        case "unmute":
+            audio.volume = 1;
+            volumeControl.value = 1;
+            volumeIcon.textContent = "🔊";
+            document.documentElement.style.setProperty("--volume-progress", "100%");
+            showToast("Unmuted");
+            if (isVoiceFeedbackEnabled) speak("Unmuted");
+            break;
+        case "home":
+            homeLink?.click();
+            break;
+        case "player":
+            backToPlayer?.click();
+            break;
+        case "search":
+            searchInput?.focus();
+            showToast("Search activated");
+            if (isVoiceFeedbackEnabled) speak("Search activated");
+            break;
+        case "help":
+            shortcutBtn?.click();
+            break;
+        case "hideShortcuts":
+            if (shortcutClose) {
+                shortcutClose.click();
+                showToast("Shortcuts closed");
+                if (isVoiceFeedbackEnabled) speak("Shortcuts closed");
+            } else {
+                showToast("Shortcuts close button not found");
+                if (isVoiceFeedbackEnabled) speak("Shortcuts close button not found");
+            }
+            break;
+        case "library":
+            libraryBtn?.click();
+            break;
+        case "sidebar":
+            if (action.includes("close")) {
+                closeSidebar?.click();
+            } else {
+                menuBtn?.click();
+            }
+            break;
+        case "reset":
+            resetPositionBtn?.click();
+            break;
+        case "queue":
+            const songName = action.replace(/add to queue|queue/i, "").trim();
+            if (songName) {
+                const song = songs.find(s => s.title.toLowerCase().includes(songName));
+                if (song) {
+                    queue.push(song);
+                    showToast(`Added to queue: ${song.title}`);
+                    if (isVoiceFeedbackEnabled) speak(`Added to queue ${song.title}`);
+                } else {
+                    showToast("Song not found");
+                    if (isVoiceFeedbackEnabled) speak("Song not found");
+                }
+            } else {
+                showToast("Please specify a song to add to queue");
+                if (isVoiceFeedbackEnabled) speak("Please specify a song to add to queue");
+            }
+            break;
+        case "clearQueue":
+            queue = [];
+            showToast("Queue cleared");
+            if (isVoiceFeedbackEnabled) speak("Queue cleared");
+            break;
+        case "restart":
+            audio.currentTime = 0;
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                showToast(`Restarted: ${songs[currentSong].title}`);
+                if (isVoiceFeedbackEnabled) speak(`Restarted ${songs[currentSong].title}`);
+            }).catch(e => {
+                console.error("Play error:", e);
+                showToast("Playback error. Please interact with the page.");
+            });
+            break;
+        case "sleepTimer":
+            const timeMatch = action.match(/(\d+)/);
+            if (timeMatch) {
+                const minutes = parseInt(timeMatch[0]);
+                if (minutes > 0 && minutes <= 120) {
+                    let optionExists = false;
+                    for (let option of sleepTimer.options) {
+                        if (parseInt(option.value) === minutes) {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    if (!optionExists) {
+                        const newOption = document.createElement("option");
+                        newOption.value = minutes;
+                        newOption.text = `${minutes} Minutes`;
+                        sleepTimer.appendChild(newOption);
+                    }
+                    sleepTimer.value = minutes;
+                    sleepTimer.dispatchEvent(new Event("change"));
+                } else {
+                    showToast("Please specify a valid time between 1 and 120 minutes");
+                    if (isVoiceFeedbackEnabled) speak("Please specify a valid time between 1 and 120 minutes");
+                }
+            } else {
+                showToast("Please specify a time in minutes");
+                if (isVoiceFeedbackEnabled) speak("Please specify a time in minutes");
+            }
+            break;
+        case "cancelSleep":
+            if (sleepTimerInterval) {
+                clearInterval(sleepTimerInterval);
+                sleepTimerInterval = null;
+                sleepTimerDisplay.style.display = "none";
+                remainingSeconds = 0;
+                sleepTimer.value = "0";
+                showToast("Sleep Timer Canceled");
+                if (isVoiceFeedbackEnabled) speak("Sleep Timer Canceled");
+            } else {
+                showToast("No active sleep timer to cancel");
+                if (isVoiceFeedbackEnabled) speak("No active sleep timer to cancel");
+            }
+            break;
+        case "fastForward":
+            const ffSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+            audio.currentTime = Math.min(audio.duration, audio.currentTime + ffSeconds);
+            showToast(`Fast forwarded ${ffSeconds} seconds`);
+            if (isVoiceFeedbackEnabled) speak(`Fast forwarded ${ffSeconds} seconds`);
+            break;
+        case "rewind":
+            const rwSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+            audio.currentTime = Math.max(0, audio.currentTime - rwSeconds);
+            showToast(`Rewound ${rwSeconds} seconds`);
+            if (isVoiceFeedbackEnabled) speak(`Rewound ${rwSeconds} seconds`);
+            break;
+        case "voiceOff":
+            if (isVoiceFeedbackEnabled) {
+                voiceCmdToggle?.click();
+            } else {
+                showToast("Voice feedback is already off");
+                speak("Voice feedback is already off", true);
+            }
+            break;
+        case "voiceOn":
+            if (!isVoiceFeedbackEnabled) {
+                voiceCmdToggle?.click();
+            } else {
+                showToast("Voice feedback is already on");
+                if (isVoiceFeedbackEnabled) speak("Voice feedback is already on");
+            }
+            break;
+        case "setVolume":
+            const volMatch = action.match(/(\d+)/);
+            if (volMatch) {
+                const volume = parseInt(volMatch[0]);
+                if (volume >= 0 && volume <= 100) {
+                    audio.volume = volume / 100;
+                    volumeControl.value = audio.volume;
+                    volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+                    document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+                    showToast(`Volume set to ${volume}%`);
+                    if (isVoiceFeedbackEnabled) speak(`Volume set to ${volume} percent`);
+                } else {
+                    showToast("Please specify a volume between 0 and 100");
+                    if (isVoiceFeedbackEnabled) speak("Please specify a volume between 0 and 100");
+                }
+            } else {
+                showToast("Please specify a volume percentage");
+                if (isVoiceFeedbackEnabled) speak("Please specify a volume percentage");
+            }
+            break;
+        case "whatIsPlaying":
+            const currentTitle = songs[currentSong]?.title || "No song playing";
+            showToast(`Now playing: ${currentTitle}`);
+            if (isVoiceFeedbackEnabled) speak(`Now playing ${currentTitle}`);
+            break;
+        case "timeLeft":
+            if (isNaN(audio.duration) || isNaN(audio.currentTime)) {
+                showToast("No song loaded");
+                if (isVoiceFeedbackEnabled) speak("No song loaded");
+            } else {
+                const timeRemaining = audio.duration - audio.currentTime;
+                const formattedTime = formatTime(timeRemaining);
+                showToast(`Time left: ${formattedTime}`);
+                if (isVoiceFeedbackEnabled) speak(`Time left ${formattedTime}`);
+            }
+            break;
+        case "duration":
+            if (isNaN(audio.duration)) {
+                showToast("No song loaded");
+                if (isVoiceFeedbackEnabled) speak("No song loaded");
+            } else {
+                const formattedDuration = formatTime(audio.duration);
+                showToast(`Duration: ${formattedDuration}`);
+                if (isVoiceFeedbackEnabled) speak(`Duration ${formattedDuration}`);
+            }
+            break;
+        case "listQueue":
+            if (queue.length === 0) {
+                showToast("Queue is empty");
+                if (isVoiceFeedbackEnabled) speak("Queue is empty");
+            } else {
+                const queueList = queue.map((song, index) => `${index + 1}. ${song.title}`).join(", ");
+                showToast(`Queue: ${queueList}`);
+                if (isVoiceFeedbackEnabled) speak(`Queue contains ${queueList}`);
+            }
+            break;
+        case "setSpeed":
+            const speedMatch = action.match(/(\d*\.?\d+)/);
+            if (speedMatch) {
+                const speed = parseFloat(speedMatch[0]);
+                if (speed >= 0.5 && speed <= 2) {
+                    speedControl.value = speed;
+                    speedControl.dispatchEvent(new Event("change"));
+                } else {
+                    showToast("Please specify a speed between 0.5 and 2");
+                    if (isVoiceFeedbackEnabled) speak("Please specify a speed between 0.5 and 2");
+                }
+            } else {
+                showToast("Please specify a playback speed");
+                if (isVoiceFeedbackEnabled) speak("Please specify a playback speed");
+            }
+            break;
+        case "filter":
+            const categoryMatch = action.match(/pop|rock|dance|all/i);
+            if (categoryMatch) {
+                const category = categoryMatch[0].toLowerCase();
+                categoryFilter.value = category === "all" ? "all" : category.charAt(0).toUpperCase() + category.slice(1);
+                categoryFilter.dispatchEvent(new Event("change"));
+            } else {
+                showToast("Please specify a category: Pop, Rock, Dance, or All");
+                if (isVoiceFeedbackEnabled) speak("Please specify a category: Pop, Rock, Dance, or All");
+            }
+            break;
+    }
 }
 
-// Keyboard Shortcuts
+// Keydown Listener (unchanged, keeping "." functionality)
 document.addEventListener("keydown", (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-
-    switch (e.key.toLowerCase()) {
+    switch (e.key) {
         case " ":
             e.preventDefault();
-            audio.paused ? playBtn.click() : pauseBtn.click();
+            if (audio.paused) {
+                playBtn?.click();
+            } else {
+                pauseBtn?.click();
+            }
             break;
-        case "arrowright":
-            nextBtn.click();
+        case "ArrowRight":
+            e.preventDefault();
+            nextBtn?.click();
             break;
-        case "arrowleft":
-            prevBtn.click();
+        case "ArrowLeft":
+            e.preventDefault();
+            prevBtn?.click();
             break;
-        case "r":
-            repeatBtn.click();
+        case "ArrowUp":
+            e.preventDefault();
+            audio.volume = Math.min(1, audio.volume + 0.1);
+            volumeControl.value = audio.volume;
+            volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+            document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+            showToast("Volume increased");
             break;
-        case "s":
-            randomBtn.click();
+        case "ArrowDown":
+            e.preventDefault();
+            audio.volume = Math.max(0, audio.volume - 0.1);
+            volumeControl.value = audio.volume;
+            volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+            document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+            showToast("Volume decreased");
             break;
-        case "l":
-            likeBtn.click();
+        case ".":
+            e.preventDefault();
+            if (!isVoiceActive) {
+                if (wakeRecognition) {
+                    wakeRecognition.aborted = true; // Mark as stopped to avoid restart conflict
+                    wakeRecognition.stop();
+                }
+                listenForCommand();
+                showToast("Manual voice command activated");
+                if (isVoiceFeedbackEnabled) speak("Listening");
+            }
             break;
-        case "m":
-            volumeIcon.click();
-            break;
-        case "arrowup":
-            volumeControl.value = Math.min(1, parseFloat(volumeControl.value) + 0.1);
-            volumeControl.dispatchEvent(new Event("input"));
-            break;
-        case "arrowdown":
-            volumeControl.value = Math.max(0, parseFloat(volumeControl.value) - 0.1);
-            volumeControl.dispatchEvent(new Event("input"));
-            break;
-        case "h":
-            homeLink.click();
-            break;
-        case "p":
-            backToPlayer.click();
-            break;
-        case "?":
-            shortcutBtn.click();
-            break;
+    }
+
+    if (e.ctrlKey && e.altKey) {
+        switch (e.key) {
+            case "h":
+                e.preventDefault();
+                homeLink?.click();
+                break;
+            case "l":
+                e.preventDefault();
+                likeBtn?.click();
+                break;
+            case "p":
+                e.preventDefault();
+                prevBtn?.click();
+                break;
+            case "n":
+                e.preventDefault();
+                nextBtn?.click();
+                break;
+            case "r":
+                e.preventDefault();
+                repeatBtn?.click();
+                break;
+            case "s":
+                e.preventDefault();
+                randomBtn?.click();
+                break;
+            case "m":
+                e.preventDefault();
+                miniToggle?.click();
+                break;
+            case "t":
+                e.preventDefault();
+                themeToggle?.click();
+                break;
+            case "/":
+                e.preventDefault();
+                shortcutBtn?.click();
+                break;
+            case "w":
+                e.preventDefault();
+                audio.currentTime = Math.max(0, audio.currentTime - 10);
+                showToast("Rewound 10 seconds");
+                break;
+            case "f":
+                e.preventDefault();
+                audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+                showToast("Fast forwarded 10 seconds");
+                break;
+            case "z":
+                e.preventDefault();
+                audio.currentTime = 0;
+                audio.play().then(() => updatePlayPauseUI(true)).catch(e => {
+                    console.error("Play error:", e);
+                    showToast("Playback error. Please interact with the page.");
+                });
+                showToast(`Restarted: ${songs[currentSong].title}`);
+                break;
+            case "b":
+                e.preventDefault();
+                libraryBtn?.click();
+                break;
+            case "a":
+                e.preventDefault();
+                menuBtn?.click();
+                break;
+            case "c":
+                e.preventDefault();
+                closeSidebar?.click();
+                break;
+            case "x":
+                e.preventDefault();
+                resetPositionBtn?.click();
+                break;
+        }
     }
 });
 
-// Prevent default touch gestures on mobile
-document.addEventListener("touchstart", (e) => {
-    if (e.touches.length > 1) e.preventDefault();
-}, { passive: false });
+window.addEventListener("unload", () => {
+    if (sleepTimerInterval) clearInterval(sleepTimerInterval);
+    if (wakeRecognition) wakeRecognition.stop();
+    window.speechSynthesis.cancel();
+});
 
-// Initialization
-window.addEventListener("load", () => {
+document.addEventListener("DOMContentLoaded", () => {
+    const requiredElements = [
+        { id: "audio", name: "audio" },
+        { id: "play", name: "playBtn" },
+        { id: "pause", name: "pauseBtn" },
+        { id: "next", name: "nextBtn" },
+        { id: "seekbar", name: "seekBar" },
+        { id: "song-title", name: "songTitle" },
+        { id: "album-cover", name: "albumCover" },
+        { id: "player", name: "player" },
+        { id: "mini-toggle", name: "miniToggle" },
+    ];
+    for (const { id, name } of requiredElements) {
+        if (!document.getElementById(id)) {
+            console.error(`Error: Element with ID "${id}" not found for ${name}`);
+            showToast(`Critical error: Missing element ${id}`);
+            return;
+        }
+    }
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            removeActiveState(); // Remove active from all
+            link.classList.add('active'); // Add active to clicked link
+        });
+    });
+
     loadLikedSongs();
     populatePlaylist();
-
-    if (songs.length > 0) {
-        loadSong(currentSong).then(() => {
-            if (isFirstLoad) {
-                updatePlayPauseUI(false);
-                isFirstLoad = false;
-            }
-            // Auto-play on load to test screen-on behavior
-            safePlay();
-        }).catch(err => console.error("Initial load failed:", err));
-    } else {
-        showToast("No songs available");
-        songTitle.textContent = "No Songs Available";
-        albumCover.src = "images/default-cover.jpg";
-        miniCover.src = "images/default-cover.jpg";
-    }
-
-    if ("mediaSession" in navigator) {
-        navigator.mediaSession.setActionHandler("play", () => safePlay());
-        navigator.mediaSession.setActionHandler("pause", () => {
-            audio.pause();
-            updatePlayPauseUI(false);
-        });
-        navigator.mediaSession.setActionHandler("nexttrack", () => nextBtn.click());
-        navigator.mediaSession.setActionHandler("previoustrack", () => prevBtn.click());
-    }
-
-    startVoiceActivation();
-    if (homePage) homePage.style.display = "block";
-    if (player) player.style.display = "none";
-});
-
-// Handle visibility changes with explicit state management
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") {
-        console.log("Page hidden, audio state:", { paused: audio.paused });
-        if (!audio.paused && "mediaSession" in navigator) {
-            navigator.mediaSession.playbackState = "playing";
+    loadSong(currentSong).then(() => {
+        if (isFirstLoad) {
+            showToast("Welcome to Danny Hub");
+            if (isVoiceFeedbackEnabled) speak("Welcome to Danny Hub");
+            isFirstLoad = false;
         }
-    } else if (document.visibilityState === "visible") {
-        console.log("Page visible, audio state:", { paused: audio.paused });
-        if (!audio.paused) {
-            updatePlayPauseUI(true);
-            // Ensure playback continues when screen is on
-            if (audio.paused) {
-                console.log("Audio paused unexpectedly, resuming...");
-                safePlay();
-            }
-        }
+        startVoiceActivation();
+    }).catch(e => console.error("Initial load error:", e));
+
+    if (homePage && player) {
+        homePage.style.display = "block";
+        player.style.display = "none";
+        setActiveSidebarButton(homeLink);
     }
 });
 
-// Handle network status
-window.addEventListener("online", () => {
-    showToast("Back Online");
-    if (isVoiceFeedbackEnabled) speak("Back Online");
-});
-
-window.addEventListener("offline", () => {
-    showToast("Offline Mode");
-    if (isVoiceFeedbackEnabled) speak("Offline Mode");
-});
-
-// Prevent accidental navigation
-window.addEventListener("beforeunload", (e) => {
-    if (!audio.paused) {
-        e.preventDefault();
-        e.returnValue = "Music is playing. Are you sure you want to leave?";
-    }
-});
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
