@@ -158,6 +158,11 @@ if ('serviceWorker' in navigator) {
             .then(registration => {
                 console.log('Service Worker registered successfully:', registration);
                 showToast('Service Worker registered');
+                setInterval(() => {
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({ type: 'KEEP_ALIVE' });
+                    }
+                }, 10000);
                 navigator.serviceWorker.ready.then(reg => {
                     if (reg.active) {
                         const assetsToCache = [
@@ -174,11 +179,7 @@ if ('serviceWorker' in navigator) {
             })
             .catch(error => {
                 console.error('Service Worker registration failed:', error);
-                let errorMessage = 'Service Worker registration failed';
-                if (error.name === 'SecurityError') errorMessage += ': Must be served over HTTPS or localhost';
-                else if (error.message.includes('404')) errorMessage += ': service-worker.js not found';
-                else errorMessage += `: ${error.message}`;
-                showToast(errorMessage);
+                showToast(`Service Worker registration failed: ${error.message}`);
             });
 
         navigator.serviceWorker.addEventListener('message', (event) => {
@@ -221,6 +222,8 @@ let hasBeenDragged = false;
 const defaultMiniPosition = { bottom: "20px", right: "20px", left: "auto", top: "auto" };
 let originalPosition = { ...defaultMiniPosition };
 let wakeRecognition = null;
+let wakeLock = null;
+let playbackSpeed = 1.0; // Persist playback speed across songs
 
 // Utility Functions
 function showToast(message) {
@@ -293,7 +296,15 @@ function loadLikedSongs() {
     }
 }
 
-async function loadSong(index) {
+async function preloadNextSong(index) {
+    if (index < 0 || index >= songs.length) return;
+    const nextAudio = new Audio(songs[index].file);
+    nextAudio.preload = "auto";
+    nextAudio.load();
+    return nextAudio;
+}
+
+async function loadSong(index, wasPlaying = false) {
     if (index < 0 || index >= songs.length || isLoading) return Promise.reject("Invalid index or loading");
     if (songs.length <= 1 && skipCount >= maxSkips) {
         showToast("No playable songs available");
@@ -302,11 +313,12 @@ async function loadSong(index) {
     isLoading = true;
 
     try {
-        const response = await fetch(songs[index].file, { method: "HEAD" });
+        const response = await fetch(songs[index].file, { method: "HEAD", cache: "no-store" });
         if (!response.ok) throw new Error("File not found or unavailable");
 
         currentSong = index;
         audio.src = songs[currentSong].file;
+        audio.playbackRate = playbackSpeed; // Apply persistent playback speed
         songTitle.textContent = songs[currentSong].title;
 
         const albumImg = new Image();
@@ -327,6 +339,10 @@ async function loadSong(index) {
         songTitle.style.animation = "fadeIn 0.3s";
         currentTimeDisplay.textContent = "0:00";
 
+        // Preload the next song
+        const nextIndex = (currentSong + 1) % songs.length;
+        preloadNextSong(nextIndex);
+
         return new Promise((resolve, reject) => {
             audio.onloadedmetadata = () => {
                 durationDisplay.textContent = formatTime(audio.duration);
@@ -336,6 +352,12 @@ async function loadSong(index) {
                 const colors = albumColorMap[songs[currentSong].cover] || ["#00c6ff", "#0072ff"];
                 document.documentElement.style.setProperty("--bg-start", colors[0]);
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
+                if (wasPlaying) {
+                    audio.play().catch(e => {
+                        console.error("Auto-play failed:", e);
+                        showToast("Tap play to resume");
+                    });
+                }
                 resolve();
             };
             audio.onerror = () => reject(new Error("Audio metadata error"));
@@ -384,7 +406,7 @@ function populatePlaylist() {
         li.draggable = true;
 
         li.addEventListener("click", () => {
-            loadSong(index).then(() => {
+            loadSong(index, true).then(() => {
                 audio.play().then(() => {
                     updatePlayPauseUI(true);
                     showToast(`Now Playing: ${songs[index].title}`);
@@ -430,6 +452,31 @@ function setActiveSidebarButton(button) {
     if (activeSidebarBtn) activeSidebarBtn.style.background = "rgb(0, 183, 255)";
     if (button) button.style.background = "#ff6f61";
     activeSidebarBtn = button;
+}
+
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                console.log('Wake Lock released');
+                wakeLock = null;
+            });
+            console.log('Wake Lock acquired');
+            showToast('Background playback enabled');
+        } catch (err) {
+            console.error('Wake Lock failed:', err);
+            showToast('Background playback may stop when screen is off');
+        }
+    }
+}
+
+async function releaseWakeLock() {
+    if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+        console.log('Wake Lock released manually');
+    }
 }
 
 function startVoiceActivation() {
@@ -659,6 +706,7 @@ playBtn?.addEventListener("click", () => {
     audio.play().then(() => {
         updatePlayPauseUI(true);
         isSleepTimerPaused = false;
+        requestWakeLock();
         showToast(`Now playing: ${songs[currentSong].title}`);
         if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
     }).catch(e => {
@@ -670,6 +718,7 @@ playBtn?.addEventListener("click", () => {
 pauseBtn?.addEventListener("click", () => {
     audio.pause();
     updatePlayPauseUI(false);
+    releaseWakeLock();
     if (isVoiceFeedbackEnabled) speak("Paused");
 });
 
@@ -678,37 +727,42 @@ nextBtn?.addEventListener("click", () => {
         showToast("No more songs to skip to");
         return;
     }
+    const wasPlaying = !audio.paused;
     if (queue.length > 0) {
         const nextSong = queue.shift();
-        const index = songs.findIndex(song => song.title === nextSong.title);
-        currentSong = index;
+        currentSong = songs.findIndex(song => song.title === nextSong.title);
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
     } else {
         currentSong = (currentSong + 1) % songs.length;
     }
-    loadSong(currentSong).then(() => {
-        audio.play().then(() => {
-            updatePlayPauseUI(true);
-            showToast(`Now Playing: ${songs[currentSong].title}`);
-            skipCount = 0;
-        }).catch(e => {
-            console.error("Play error:", e);
-            showToast("Playback error. Please interact with the page.");
-        });
+    loadSong(currentSong, wasPlaying).then(() => {
+        if (wasPlaying) {
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                showToast(`Now Playing: ${songs[currentSong].title}`);
+                skipCount = 0;
+            }).catch(e => {
+                console.error("Play error:", e);
+                showToast("Playback error. Please interact with the page.");
+            });
+        }
     }).catch(() => skipCount++);
 });
 
 prevBtn?.addEventListener("click", () => {
+    const wasPlaying = !audio.paused;
     currentSong = (currentSong - 1 + songs.length) % songs.length;
-    loadSong(currentSong).then(() => {
-        audio.play().then(() => {
-            updatePlayPauseUI(true);
-            showToast(`Now Playing: ${songs[currentSong].title}`);
-        }).catch(e => {
-            console.error("Play error:", e);
-            showToast("Playback error. Please interact with the page.");
-        });
+    loadSong(currentSong, wasPlaying).then(() => {
+        if (wasPlaying) {
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                showToast(`Now Playing: ${songs[currentSong].title}`);
+            }).catch(e => {
+                console.error("Play error:", e);
+                showToast("Playback error. Please interact with the page.");
+            });
+        }
     });
 });
 
@@ -733,7 +787,7 @@ audio?.addEventListener("ended", () => {
     } else if (queue.length > 0) {
         const nextSong = queue.shift();
         const index = songs.findIndex(song => song.title === nextSong.title);
-        loadSong(index).then(() => {
+        loadSong(index, true).then(() => {
             audio.play().then(() => {
                 updatePlayPauseUI(true);
                 showToast(`Now playing from queue: ${songs[currentSong].title}`);
@@ -745,7 +799,7 @@ audio?.addEventListener("ended", () => {
         });
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
-        loadSong(currentSong).then(() => {
+        loadSong(currentSong, true).then(() => {
             audio.play().then(() => {
                 updatePlayPauseUI(true);
                 showToast(`Now playing (random): ${songs[currentSong].title}`);
@@ -757,7 +811,7 @@ audio?.addEventListener("ended", () => {
         });
     } else if ((currentSong + 1) < songs.length) {
         currentSong++;
-        loadSong(currentSong).then(() => {
+        loadSong(currentSong, true).then(() => {
             audio.play().then(() => {
                 updatePlayPauseUI(true);
                 showToast(`Now Playing: ${songs[currentSong].title}`);
@@ -769,7 +823,7 @@ audio?.addEventListener("ended", () => {
         });
     } else if (repeatMode === 2) {
         currentSong = 0;
-        loadSong(currentSong).then(() => {
+        loadSong(currentSong, true).then(() => {
             audio.play().then(() => {
                 updatePlayPauseUI(true);
                 showToast(`Now Playing: ${songs[currentSong].title}`);
@@ -793,6 +847,21 @@ audio?.addEventListener("error", () => {
     if (songs.length > 1 && skipCount < maxSkips) {
         skipCount++;
         nextBtn.click();
+    }
+});
+
+audio?.addEventListener("pause", (e) => {
+    if (document.visibilityState === "hidden" && !isSleepTimerPaused) {
+        setTimeout(() => {
+            if (!audio.paused) return;
+            audio.play().then(() => {
+                console.log("Audio resumed after interruption");
+                updatePlayPauseUI(true);
+            }).catch(err => {
+                console.error("Resume failed:", err);
+                showToast("Playback paused. Tap play to resume.");
+            });
+        }, 1000);
     }
 });
 
@@ -888,9 +957,11 @@ searchInput?.addEventListener("input", debounce(() => {
 }, 300));
 
 speedControl?.addEventListener("change", () => {
-    audio.playbackRate = parseFloat(speedControl.value);
-    showToast(`Speed set to ${speedControl.value}x`);
-    if (isVoiceFeedbackEnabled) speak(`Speed set to ${speedControl.value}x`);
+    playbackSpeed = parseFloat(speedControl.value);
+    audio.playbackRate = playbackSpeed;
+    localStorage.setItem("playbackSpeed", playbackSpeed); // Persist speed
+    showToast(`Speed set to ${playbackSpeed}x`);
+    if (isVoiceFeedbackEnabled) speak(`Speed set to ${playbackSpeed}x`);
 });
 
 sleepTimer?.addEventListener("change", () => {
@@ -1158,7 +1229,7 @@ function handleVoiceCommand(command) {
         reset: ["reset", "reset mini"],
         queue: ["queue", "add to queue"],
         clearQueue: ["clear queue", "empty queue"],
-        restart: ["restart", "replay"],
+        restart: ["restart", "replay", "reset song"],
         sleepTimer: ["set sleep timer", "sleep timer", "sleep"],
         fastForward: ["fast forward", "skip ahead"],
         rewind: ["rewind", "go back"],
@@ -1266,11 +1337,11 @@ function handleVoiceCommand(command) {
         case "help":
             shortcutBtn?.click();
             break;
-            case "hideShortcuts":
-                shortcutClose?.click();
-                showToast("Shortcuts closed");
-                if (isVoiceFeedbackEnabled) speak("Shortcuts closed");
-                break;
+        case "hideShortcuts":
+            shortcutClose?.click();
+            showToast("Shortcuts closed");
+            if (isVoiceFeedbackEnabled) speak("Shortcuts closed");
+            break;
         case "library":
             libraryBtn?.click();
             break;
@@ -1386,8 +1457,10 @@ function handleVoiceCommand(command) {
             if (speedMatch) {
                 const speed = parseFloat(speedMatch[0]);
                 if (speed >= 0.5 && speed <= 2) {
-                    audio.playbackRate = speed;
+                    playbackSpeed = speed;
+                    audio.playbackRate = playbackSpeed;
                     speedControl.value = speed;
+                    localStorage.setItem("playbackSpeed", playbackSpeed);
                     showToast(`Speed set to ${speed}x`);
                     if (isVoiceFeedbackEnabled) speak(`Speed set to ${speed} times`);
                 } else {
@@ -1442,7 +1515,7 @@ function handlePlaySongCommand(command) {
     if (songName) {
         const songIndex = songs.findIndex(s => s.title.toLowerCase().includes(songName));
         if (songIndex !== -1) {
-            loadSong(songIndex).then(() => {
+            loadSong(songIndex, true).then(() => {
                 audio.play().then(() => {
                     updatePlayPauseUI(true);
                     showToast(`Now Playing: ${songs[songIndex].title}`);
@@ -1451,13 +1524,13 @@ function handlePlaySongCommand(command) {
                     console.error("Play error:", e);
                     showToast("Playback error. Please interact with the page.");
                 });
-            }).catch(() => {
+            }).catch(e => {
+                console.error("Load song error:", e);
                 showToast("Failed to load song");
-                if (isVoiceFeedbackEnabled) speak("Failed to load song");
             });
         } else {
-            showToast("Song not found");
-            if (isVoiceFeedbackEnabled) speak("Song not found");
+            showToast(`Song "${songName}" not found`);
+            if (isVoiceFeedbackEnabled) speak(`Song ${songName} not found`);
         }
     } else {
         playBtn?.click();
@@ -1472,218 +1545,142 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
-
-// Keyboard Shortcuts
+// Keydown Listener (unchanged, keeping "." functionality)
 document.addEventListener("keydown", (e) => {
-    // Skip if typing in an input or textarea
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-        console.log("Key press ignored: Input or textarea focused");
-        return;
-    }
-
-    // Log the key pressed for debugging
-    console.log(`Key pressed: ${e.key}, Ctrl: ${e.ctrlKey}`);
-
-    // Prevent default browser behavior for specific keys
-    const key = e.key.toLowerCase();
-    let actionTaken = false;
-
-    switch (key) {
-        case " ": // Spacebar to play/pause
+    switch (e.key) {
+        case " ":
             e.preventDefault();
-            if (!playBtn || !pauseBtn) {
-                console.error("Play or Pause button not found in DOM");
-                showToast("Play/Pause buttons not found");
-                return;
+            if (audio.paused) {
+                playBtn?.click();
+            } else {
+                pauseBtn?.click();
             }
-            audio.paused ? playBtn.click() : pauseBtn.click();
-            actionTaken = true;
             break;
-
-        case "arrowright": // Next song
+        case "ArrowRight":
             e.preventDefault();
-            if (!nextBtn) {
-                console.error("Next button not found in DOM");
-                showToast("Next button not found");
-                return;
-            }
-            nextBtn.click();
-            actionTaken = true;
+            nextBtn?.click();
             break;
-
-        case "arrowleft": // Previous song
+        case "ArrowLeft":
             e.preventDefault();
-            if (!prevBtn) {
-                console.error("Previous button not found in DOM");
-                showToast("Previous button not found");
-                return;
-            }
-            prevBtn.click();
-            actionTaken = true;
+            prevBtn?.click();
             break;
-
-        case "r": // Ctrl+R for repeat
-            if (e.ctrlKey) {
-                e.preventDefault(); // Prevent browser refresh
-                if (!repeatBtn) {
-                    console.error("Repeat button not found in DOM");
-                    showToast("Repeat button not found");
-                    return;
-                }
-                repeatBtn.click();
-                actionTaken = true;
-            }
-            break;
-
-        case "s": // Ctrl+S for shuffle
-            if (e.ctrlKey) {
-                e.preventDefault(); // Prevent browser save
-                if (!randomBtn) {
-                    console.error("Random button not found in DOM");
-                    showToast("Random button not found");
-                    return;
-                }
-                randomBtn.click();
-                actionTaken = true;
-            }
-            break;
-
-        case "l": // Ctrl+L for like
-            if (e.ctrlKey) {
-                e.preventDefault();
-                if (!likeBtn) {
-                    console.error("Like button not found in DOM");
-                    showToast("Like button not found");
-                    return;
-                }
-                likeBtn.click();
-                actionTaken = true;
-            }
-            break;
-
-        case "m": // Ctrl+M for mini player
-            if (e.ctrlKey) {
-                e.preventDefault();
-                if (!miniToggle) {
-                    console.error("Mini toggle button not found in DOM");
-                    showToast("Mini toggle not found");
-                    return;
-                }
-                miniToggle.click();
-                actionTaken = true;
-            }
-            break;
-
-        case "h": // Ctrl+H for home
-            if (e.ctrlKey) {
-                e.preventDefault();
-                if (!homeLink) {
-                    console.error("Home link not found in DOM");
-                    showToast("Home link not found");
-                    return;
-                }
-                homeLink.click();
-                actionTaken = true;
-            }
-            break;
-
-        case "p": // Ctrl+P for back to player
-            if (e.ctrlKey) {
-                e.preventDefault();
-                if (!backToPlayer) {
-                    console.error("Back to player button not found in DOM");
-                    showToast("Back to player not found");
-                    return;
-                }
-                backToPlayer.click();
-                actionTaken = true;
-            }
-            break;
-
-        case "t": // Ctrl+T for theme toggle
-            if (e.ctrlKey) {
-                e.preventDefault();
-                if (!themeToggle) {
-                    console.error("Theme toggle button not found in DOM");
-                    showToast("Theme toggle not found");
-                    return;
-                }
-                themeToggle.click();
-                actionTaken = true;
-            }
-            break;
-
-        case "arrowup": // Volume up
+        case "ArrowUp":
             e.preventDefault();
-            if (!volumeControl) {
-                console.error("Volume control not found in DOM");
-                showToast("Volume control not found");
-                return;
-            }
             audio.volume = Math.min(1, audio.volume + 0.1);
             volumeControl.value = audio.volume;
-            volumeControl.dispatchEvent(new Event("input", { bubbles: true }));
-            actionTaken = true;
+            volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+            document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+            showToast("Volume increased");
             break;
-
-        case "arrowdown": // Volume down
+        case "ArrowDown":
             e.preventDefault();
-            if (!volumeControl) {
-                console.error("Volume control not found in DOM");
-                showToast("Volume control not found");
-                return;
-            }
             audio.volume = Math.max(0, audio.volume - 0.1);
             volumeControl.value = audio.volume;
-            volumeControl.dispatchEvent(new Event("input", { bubbles: true }));
-            actionTaken = true;
+            volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+            document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+            showToast("Volume decreased");
             break;
-
-        case "0": // Reset mini player position
-            if (!resetPositionBtn) {
-                console.error("Reset position button not found in DOM");
-                showToast("Reset position button not found");
-                return;
-            }
-            resetPositionBtn.click();
-            actionTaken = true;
-            break;
-
-        case "?": // Show shortcuts
-            if (!shortcutBtn) {
-                console.error("Shortcut button not found in DOM");
-                showToast("Shortcut button not found");
-                return;
-            }
-            shortcutBtn.click();
-            actionTaken = true;
-            break;
-
-        case ".": // Activate voice command
+        case ".":
             e.preventDefault();
-            if (!voiceBtn) {
-                console.error("Voice button not found in DOM");
-                showToast("Voice button not found");
-                return;
+            if (!isVoiceActive) {
+                if (wakeRecognition) {
+                    wakeRecognition.aborted = true; // Mark as stopped to avoid restart conflict
+                    wakeRecognition.stop();
+                }
+                listenForCommand();
+                showToast("Manual voice command activated");
+                if (isVoiceFeedbackEnabled) speak("Listening");
             }
-            listenForCommandWithTimeout(7000);
-            actionTaken = true;
             break;
     }
 
-    if (actionTaken) {
-        console.log(`Action executed for key: ${key}`);
-    } else {
-        console.log(`No action defined for key: ${key}`);
+    if (e.ctrlKey && e.altKey) {
+        switch (e.key) {
+            case "h":
+                e.preventDefault();
+                homeLink?.click();
+                break;
+            case "l":
+                e.preventDefault();
+                likeBtn?.click();
+                break;
+            case "p":
+                e.preventDefault();
+                prevBtn?.click();
+                break;
+            case "n":
+                e.preventDefault();
+                nextBtn?.click();
+                break;
+            case "r":
+                e.preventDefault();
+                repeatBtn?.click();
+                break;
+            case "s":
+                e.preventDefault();
+                randomBtn?.click();
+                break;
+            case "m":
+                e.preventDefault();
+                miniToggle?.click();
+                break;
+            case "t":
+                e.preventDefault();
+                themeToggle?.click();
+                break;
+            case "/":
+                e.preventDefault();
+                shortcutBtn?.click();
+                break;
+            case "w":
+                e.preventDefault();
+                audio.currentTime = Math.max(0, audio.currentTime - 10);
+                showToast("Rewound 10 seconds");
+                break;
+            case "f":
+                e.preventDefault();
+                audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+                showToast("Fast forwarded 10 seconds");
+                break;
+            case "z":
+                e.preventDefault();
+                audio.currentTime = 0;
+                audio.play().then(() => updatePlayPauseUI(true)).catch(e => {
+                    console.error("Play error:", e);
+                    showToast("Playback error. Please interact with the page.");
+                });
+                showToast(`Restarted: ${songs[currentSong].title}`);
+                break;
+            case "b":
+                e.preventDefault();
+                libraryBtn?.click();
+                break;
+            case "a":
+                e.preventDefault();
+                menuBtn?.click();
+                break;
+            case "c":
+                e.preventDefault();
+                closeSidebar?.click();
+                break;
+            case "x":
+                e.preventDefault();
+                resetPositionBtn?.click();
+                break;
+        }
     }
 });
 
-// Initialization
+
+// Window Load Event
 window.addEventListener("load", () => {
-    // Load state from localStorage
     const storedSongIndex = parseInt(localStorage.getItem("currentSongIndex") || "0");
     const storedTime = parseFloat(localStorage.getItem("currentTime") || "0");
     const storedVolume = parseFloat(localStorage.getItem("volume") || "1");
+    const storedSpeed = parseFloat(localStorage.getItem("playbackSpeed") || "1");
+
+    playbackSpeed = storedSpeed; // Load persisted playback speed
+    speedControl.value = playbackSpeed;
 
     loadLikedSongs();
     if (songs.length > 0) {
@@ -1691,15 +1688,15 @@ window.addEventListener("load", () => {
         loadSong(currentSong).then(() => {
             audio.currentTime = storedTime;
             audio.volume = storedVolume;
+            audio.playbackRate = playbackSpeed; // Apply on load
             volumeControl.value = storedVolume;
             volumeIcon.textContent = storedVolume === 0 ? "🔇" : "🔊";
             document.documentElement.style.setProperty("--volume-progress", `${storedVolume * 100}%`);
 
-            // Set home page visible and player hidden by default
             if (homePage && player) {
                 homePage.style.display = "block";
                 player.style.display = "none";
-                setActiveSidebarButton(homeLink); // Highlight home button
+                setActiveSidebarButton(homeLink);
             }
 
             if (isFirstLoad) {
@@ -1712,7 +1709,7 @@ window.addEventListener("load", () => {
             console.error("Initial load failed:", e);
             showToast("Failed to load initial song");
             if (homePage && player) {
-                homePage.style.display = "block"; // Show home page even on error
+                homePage.style.display = "block";
                 player.style.display = "none";
             }
         });
@@ -1720,7 +1717,7 @@ window.addEventListener("load", () => {
         showToast("No songs available");
         if (isVoiceFeedbackEnabled) speak("No songs available");
         if (homePage && player) {
-            homePage.style.display = "block"; // Show home page if no songs
+            homePage.style.display = "block";
             player.style.display = "none";
         }
     }
@@ -1734,49 +1731,31 @@ window.addEventListener("load", () => {
     } else {
         themeToggle.textContent = "🌙";
     }
-});
 
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden" && !audio.paused) {
-        showToast(`Playing in background: ${songs[currentSong].title}`);
-    }
-});
+    audio?.addEventListener("play", () => {
+        document.title = `Playing: ${songs[currentSong].title}`;
+        if (!audio.paused) requestWakeLock();
+    });
 
-audio?.addEventListener("play", () => {
-    document.title = `Playing: ${songs[currentSong].title}`;
-});
+    audio?.addEventListener("pause", () => {
+        document.title = "Paused - Danny Music Hub";
+        if (audio.paused && document.visibilityState === "visible") releaseWakeLock();
+    });
 
-audio?.addEventListener("pause", () => {
-    document.title = "Paused - Danny Music Hub";
-});
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden" && !audio.paused) {
+            showToast(`Playing in background: ${songs[currentSong].title}`);
+            if (!wakeLock) requestWakeLock();
+        } else if (document.visibilityState === "visible" && !audio.paused) {
+            if (!wakeLock) requestWakeLock();
+            showToast(`Returned to foreground: ${songs[currentSong].title}`);
+        }
+    });
 
-// Handle network status
-window.addEventListener("online", () => {
-    showToast("Back online");
-    if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: "UPDATE_CACHE",
-            assets: [
-                ...originalSongs.map(song => song.file),
-                ...originalSongs.map(song => song.cover)
-            ]
-        });
-    }
-});
-
-window.addEventListener("offline", () => {
-    showToast("Offline mode - Using cached content");
-});
-
-// Cleanup and save state on unload
-window.addEventListener("beforeunload", () => {
-    if (sleepTimerInterval) clearInterval(sleepTimerInterval);
-    localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
-    localStorage.setItem("currentSongIndex", currentSong);
-    localStorage.setItem("currentTime", audio.currentTime);
-    localStorage.setItem("volume", audio.volume);
-    if (wakeRecognition) {
-        wakeRecognition.aborted = true;
-        wakeRecognition.stop();
-    }
+    window.addEventListener("beforeunload", () => {
+        localStorage.setItem("currentSongIndex", currentSong);
+        localStorage.setItem("currentTime", audio.currentTime);
+        localStorage.setItem("volume", audio.volume);
+        localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark");
+    });
 });
