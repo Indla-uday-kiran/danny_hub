@@ -169,12 +169,12 @@ body.light-theme .toggle-switch-state {
     color: black;
 }
 
-#sidebar #home-link:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 12px rgba(107, 255, 159, 0.8); }
-#sidebar #library-btn:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 12px rgba(78, 205, 196, 0.8); }
-#sidebar #playlist-btn:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 12px rgba(150, 201, 61, 0.8); }
-#sidebar #category-filter:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 12px rgba(244, 162, 97, 0.8); }
-#sidebar .sleep-timer-container:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 12px rgba(255, 107, 107, 0.8); } /* Matches #home-link */
-#sidebar #voice-cmd-toggle:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 12px rgba(168, 85, 247, 0.8); }
+#sidebar #home-link:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
+#sidebar #library-btn:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
+#sidebar #playlist-btn:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
+#sidebar #category-filter:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
+#sidebar .sleep-timer-container:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); } /* Matches #home-link */
+#sidebar #voice-cmd-toggle:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25pxrgba(205, 6, 216, 0.8); }
 
 #sidebar a:hover,
 .sidebar-btn:hover,
