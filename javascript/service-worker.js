@@ -1,265 +1,160 @@
-// service-worker.js
-
-// Cache name with version for easy updates
-const CACHE_NAME = 'danny-hub-cache-v2'; // Updated version for cache refresh
-const AUDIO_CACHE_NAME = 'danny-hub-audio-cache-v1'; // Separate cache for audio files
-
-// Default assets to cache on install
+// Service Worker for Danny Hub Music Player
+const CACHE_NAME = 'danny-hub-cache-v2'; // Increment version when updating assets
 const INITIAL_ASSETS = [
     '/',
     '/index.html',
     '/css_folder/style.css',
     '/javascript/script.js',
-    // Add common fallback assets if needed
+    // Add default assets here if needed (e.g., placeholder images)
     '/images/default-cover.jpg'
 ];
 
-// Install event: Cache initial assets
+// Install event - Cache initial assets
 self.addEventListener('install', (event) => {
-    console.log('Service Worker: Installing...');
+    console.log('[Service Worker] Installing...');
     event.waitUntil(
-        Promise.all([
-            caches.open(CACHE_NAME)
-                .then(cache => {
-                    console.log('Service Worker: Caching initial assets');
-                    return cache.addAll(INITIAL_ASSETS);
-                }),
-            caches.open(AUDIO_CACHE_NAME) // Open audio cache for future use
-        ])
-        .then(() => {
-            console.log('Service Worker: Installation complete');
-            return self.skipWaiting(); // Activate immediately
-        })
-        .catch(err => {
-            console.error('Service Worker: Installation failed:', err);
-        })
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('[Service Worker] Caching initial assets');
+                return cache.addAll(INITIAL_ASSETS);
+            })
+            .then(() => {
+                console.log('[Service Worker] Installed successfully');
+                return self.skipWaiting(); // Activate immediately
+            })
+            .catch((error) => console.error('[Service Worker] Install failed:', error))
     );
 });
 
-// Activate event: Clean up old caches
+// Activate event - Clean up old caches
 self.addEventListener('activate', (event) => {
-    console.log('Service Worker: Activating...');
-    const cacheWhitelist = [CACHE_NAME, AUDIO_CACHE_NAME];
+    console.log('[Service Worker] Activating...');
     event.waitUntil(
         caches.keys()
-            .then(cacheNames => {
+            .then((cacheNames) => {
                 return Promise.all(
-                    cacheNames
-                        .filter(name => !cacheWhitelist.includes(name))
-                        .map(name => {
-                            console.log('Service Worker: Deleting old cache:', name);
+                    cacheNames.map((name) => {
+                        if (name !== CACHE_NAME) {
+                            console.log('[Service Worker] Deleting old cache:', name);
                             return caches.delete(name);
-                        })
+                        }
+                    })
                 );
             })
             .then(() => {
-                console.log('Service Worker: Activation complete');
-                return self.clients.claim(); // Take control of clients immediately
+                console.log('[Service Worker] Activated');
+                return self.clients.claim(); // Take control immediately
             })
-            .catch(err => {
-                console.error('Service Worker: Activation failed:', err);
+            .catch((error) => console.error('[Service Worker] Activation failed:', error))
+    );
+});
+
+// Fetch event - Serve from cache or fetch from network
+self.addEventListener('fetch', (event) => {
+    const requestUrl = new URL(event.request.url);
+
+    // Skip caching for non-GET requests or external resources
+    if (event.request.method !== 'GET' || !requestUrl.origin === self.location.origin) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request)
+            .then((response) => {
+                // Return cached response if available
+                if (response) {
+                    console.log('[Service Worker] Serving from cache:', requestUrl.pathname);
+                    return response;
+                }
+
+                // Fetch from network if not in cache
+                console.log('[Service Worker] Fetching from network:', requestUrl.pathname);
+                return fetch(event.request)
+                    .then((networkResponse) => {
+                        // Clone the response since it can only be consumed once
+                        const responseToCache = networkResponse.clone();
+
+                        // Cache the new response
+                        caches.open(CACHE_NAME)
+                            .then((cache) => {
+                                cache.put(event.request, responseToCache);
+                                console.log('[Service Worker] Cached new asset:', requestUrl.pathname);
+                            })
+                            .catch((error) => console.error('[Service Worker] Cache put failed:', error));
+
+                        return networkResponse;
+                    })
+                    .catch((error) => {
+                        console.error('[Service Worker] Fetch failed:', error);
+                        // Fallback for offline HTML page (customize as needed)
+                        if (requestUrl.pathname === '/index.html') {
+                            return caches.match('/index.html');
+                        }
+                        // Fallback for audio files (optional: return a default audio or error)
+                        if (requestUrl.pathname.startsWith('/songs/')) {
+                            return new Response('Offline: Audio unavailable', {
+                                status: 503,
+                                statusText: 'Service Unavailable'
+                            });
+                        }
+                        // Fallback for images (optional: return default image)
+                        if (requestUrl.pathname.startsWith('/images/')) {
+                            return caches.match('/images/default-cover.jpg');
+                        }
+                    });
             })
     );
 });
 
-// Fetch event: Optimized for audio and general resources
-self.addEventListener('fetch', (event) => {
-    const request = event.request;
-    const url = new URL(request.url);
-
-    // Skip non-GET requests
-    if (request.method !== 'GET') {
-        return;
-    }
-
-    // Handle audio files separately for better streaming and caching
-    if (request.destination === 'audio') {
-        event.respondWith(handleAudioRequest(request, url));
-    } else {
-        event.respondWith(handleGeneralRequest(request, url));
-    }
-});
-
-// Handle audio requests with range support and robust caching
-async function handleAudioRequest(request, url) {
-    try {
-        const cache = await caches.open(AUDIO_CACHE_NAME);
-        const cachedResponse = await cache.match(request);
-
-        if (cachedResponse) {
-            console.log(`Service Worker: Serving cached audio: ${url.pathname}`);
-            updateCacheInBackground(request, AUDIO_CACHE_NAME); // Update cache asynchronously
-            return cachedResponse;
-        }
-
-        // Fetch with range support for streaming
-        const networkResponse = await fetch(request, {
-            cache: 'no-store',
-            headers: request.headers // Preserve range requests if present
-        });
-
-        if (!networkResponse.ok) {
-            console.error(`Service Worker: Audio fetch failed: ${networkResponse.status}`);
-            return networkResponse; // Return error response to client
-        }
-
-        // Cache the response
-        const responseToCache = networkResponse.clone();
-        cache.put(request, responseToCache)
-            .then(() => console.log(`Service Worker: Cached audio: ${url.pathname}`))
-            .catch(err => console.error('Service Worker: Audio cache put failed:', err));
-
-        return networkResponse;
-    } catch (err) {
-        console.error('Service Worker: Audio fetch error:', err);
-        return new Response('Audio unavailable offline', {
-            status: 503,
-            statusText: 'Service Unavailable'
-        });
-    }
-}
-
-// Handle general requests (HTML, CSS, JS, images, etc.)
-async function handleGeneralRequest(request, url) {
-    try {
-        const cache = await caches.open(CACHE_NAME);
-        const cachedResponse = await cache.match(request);
-
-        if (cachedResponse) {
-            console.log(`Service Worker: Serving cached resource: ${url.pathname}`);
-            updateCacheInBackground(request, CACHE_NAME); // Update cache asynchronously
-            return cachedResponse;
-        }
-
-        const networkResponse = await fetch(request);
-        if (!networkResponse.ok) {
-            console.error(`Service Worker: Fetch failed: ${networkResponse.status}`);
-            return networkResponse;
-        }
-
-        const responseToCache = networkResponse.clone();
-        cache.put(request, responseToCache)
-            .then(() => console.log(`Service Worker: Cached resource: ${url.pathname}`))
-            .catch(err => console.error('Service Worker: Cache put failed:', err));
-
-        return networkResponse;
-    } catch (err) {
-        console.error('Service Worker: Fetch error:', err);
-        if (request.mode === 'navigate') {
-            return caches.match('/index.html') || new Response('Offline', { status: 503 });
-        }
-        return new Response('Resource unavailable offline', {
-            status: 503,
-            statusText: 'Service Unavailable'
-        });
-    }
-}
-
-// Update cache in the background without blocking response
-function updateCacheInBackground(request, cacheName) {
-    fetch(request, { cache: 'no-store' })
-        .then(networkResponse => {
-            if (networkResponse.ok) {
-                return caches.open(cacheName)
-                    .then(cache => cache.put(request, networkResponse.clone()));
-            }
-        })
-        .catch(err => console.error('Service Worker: Background update failed:', err));
-}
-
-// Message event: Handle dynamic cache updates
+// Message event - Handle cache updates from the main script
 self.addEventListener('message', (event) => {
-    if (!event.data || !event.data.type) return;
+    if (event.data && event.data.type === 'UPDATE_CACHE') {
+        const assetsToCache = event.data.assets || [];
+        console.log('[Service Worker] Received cache update request with assets:', assetsToCache);
 
-    switch (event.data.type) {
-        case 'UPDATE_CACHE':
-            const assets = event.data.assets || [];
-            if (!Array.isArray(assets) || assets.length === 0) {
-                postMessageToClients({
-                    type: 'CACHE_UPDATE_FAILED',
-                    error: 'No valid assets provided'
-                });
-                return;
-            }
+        event.waitUntil(
+            caches.open(CACHE_NAME)
+                .then((cache) => {
+                    const cachePromises = assetsToCache.map((asset) => {
+                        return fetch(asset, { method: 'HEAD' })
+                            .then((response) => {
+                                if (!response.ok) {
+                                    console.warn('[Service Worker] Asset unavailable, skipping:', asset);
+                                    return Promise.resolve(); // Skip if HEAD fails
+                                }
+                                return cache.match(asset)
+                                    .then((cachedResponse) => {
+                                        if (!cachedResponse) {
+                                            console.log('[Service Worker] Adding new asset to cache:', asset);
+                                            return fetch(asset)
+                                                .then((fetchResponse) => {
+                                                    return cache.put(asset, fetchResponse);
+                                                });
+                                        } else {
+                                            console.log('[Service Worker] Asset already cached:', asset);
+                                            return Promise.resolve();
+                                        }
+                                    });
+                            })
+                            .catch((error) => {
+                                console.error('[Service Worker] Failed to cache asset:', asset, error);
+                                return Promise.resolve(); // Continue with other assets
+                            });
+                    });
 
-            event.waitUntil(
-                updateCache(assets)
-                    .then(assetsCached => {
-                        console.log('Service Worker: Cache update completed');
-                        postMessageToClients({
-                            type: 'CACHE_UPDATED',
-                            assetsCached
+                    return Promise.all(cachePromises)
+                        .then(() => {
+                            console.log('[Service Worker] Cache update completed');
+                            // Notify clients of successful update
+                            self.clients.matchAll().then((clients) => {
+                                clients.forEach((client) =>
+                                    client.postMessage({ type: 'CACHE_UPDATED' })
+                                );
+                            });
                         });
-                    })
-                    .catch(err => {
-                        console.error('Service Worker: Cache update failed:', err);
-                        postMessageToClients({
-                            type: 'CACHE_UPDATE_FAILED',
-                            error: err.message || 'Unknown error during cache update'
-                        });
-                    })
-            );
-            break;
-
-        case 'KEEP_ALIVE':
-            console.log('Service Worker: Received KEEP_ALIVE');
-            event.waitUntil(new Promise(resolve => setTimeout(resolve, 1000)));
-            break;
-
-        default:
-            console.warn('Service Worker: Unknown message type:', event.data.type);
-            postMessageToClients({
-                type: 'UNKNOWN_MESSAGE',
-                error: `Unrecognized message type: ${event.data.type}`
-            });
-            break;
+                })
+                .catch((error) => console.error('[Service Worker] Cache update failed:', error))
+        );
     }
-});
-
-// Utility to update cache dynamically
-async function updateCache(assets) {
-    const uniqueAssets = [...new Set(assets)];
-    console.log('Service Worker: Updating cache with', uniqueAssets.length, 'assets');
-
-    const audioCache = await caches.open(AUDIO_CACHE_NAME);
-    const staticCache = await caches.open(CACHE_NAME);
-    let assetsCached = 0;
-
-    await Promise.all(uniqueAssets.map(async asset => {
-        const isAudio = asset.endsWith('.mp3') || asset.includes('songs/');
-        const targetCache = isAudio ? audioCache : staticCache;
-
-        try {
-            const cached = await targetCache.match(asset);
-            if (!cached) {
-                const response = await fetch(asset, { cache: 'no-store' });
-                if (!response.ok) {
-                    throw new Error(`Fetch failed for ${asset}: ${response.status}`);
-                }
-                await targetCache.put(asset, response);
-                assetsCached++;
-                console.log(`Service Worker: Cached ${asset}`);
-            }
-        } catch (err) {
-            console.error(`Service Worker: Failed to cache ${asset}:`, err);
-            throw err; // Re-throw to handle in the outer catch
-        }
-    }));
-
-    return assetsCached;
-}
-
-// Utility to send messages to all clients
-function postMessageToClients(message) {
-    self.clients.matchAll({ includeUncontrolled: true })
-        .then(clients => {
-            clients.forEach(client => client.postMessage(message));
-        })
-        .catch(err => console.error('Service Worker: Failed to post message:', err));
-}
-
-// Sync event: Placeholder for future enhancements
-self.addEventListener('sync', (event) => {
-    console.log('Service Worker: Background sync event:', event.tag);
-    // Add sync logic here if needed (e.g., retry failed requests)
 });
