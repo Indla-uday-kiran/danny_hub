@@ -162,30 +162,26 @@ let originalSongs = [
     // { title: "Ramuloo Ramulaa", file: "songs/[iSongs.info] 05 - Ramuloo Ramulaa.mp3", cover: "images/Ala-Vaikunthapurramuloo-Telugu-2019-20191026161003-500x500.jpg", liked: false, category: "Dance" }
 ];
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js", { scope: "/" })
             .then(registration => {
-                console.log('Service Worker registered successfully:', registration);
-                showToast('Service Worker registered');
+                console.log("Service Worker registered:", registration);
                 navigator.serviceWorker.ready.then(reg => {
                     if (reg.active) {
                         const assetsToCache = [
                             ...originalSongs.map(song => song.file),
-                            ...originalSongs.map(song => song.cover),
-                            '/', '/index.html', '/css_folder/style.css', '/javascript/script.js'
+                            ...originalSongs.map(song => song.cover || "images/default-cover.jpg"),
+                            "/", "/index.html", "/css_folder/style.css", "/javascript/script.js"
                         ];
                         reg.active.postMessage({
-                            type: 'UPDATE_CACHE',
+                            type: "UPDATE_CACHE",
                             assets: assetsToCache
                         });
                     }
                 });
             })
-            .catch(error => {
-                console.error('Service Worker registration failed:', error);
-                showToast(`Service Worker registration failed: ${error.message}`);
-            });
+            .catch(error => console.error("Service Worker registration failed:", error));
     });
 }
 
@@ -251,7 +247,7 @@ function formatTime(seconds) {
 function safePlay() {
     audio.play().then(() => {
         updatePlayPauseUI(true);
-        if ('mediaSession' in navigator) {
+        if ("mediaSession" in navigator) {
             navigator.mediaSession.playbackState = "playing";
         }
     }).catch(e => {
@@ -260,7 +256,7 @@ function safePlay() {
         document.addEventListener("touchstart", function resume() {
             audio.play().then(() => {
                 updatePlayPauseUI(true);
-                if ('mediaSession' in navigator) {
+                if ("mediaSession" in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                 }
             });
@@ -320,20 +316,34 @@ async function loadSong(index) {
         audio.src = songs[index].file;
         songTitle.textContent = songs[index].title;
 
-        // Set album cover directly with fallback
+        // Set album cover
         const coverSrc = songs[index].cover || "images/default-cover.jpg";
         albumCover.src = coverSrc;
         miniCover.src = coverSrc;
-        console.log("Setting album cover to:", coverSrc);
-
-        // Handle image loading errors
         albumCover.onerror = () => {
-            console.error("Failed to load cover:", coverSrc);
             albumCover.src = "images/default-cover.jpg";
         };
         miniCover.onerror = () => {
             miniCover.src = "images/default-cover.jpg";
         };
+
+        // Media Session API
+        if ("mediaSession" in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: songs[index].title,
+                artist: "Unknown Artist",
+                album: "Danny Hub Playlist",
+                artwork: [{ src: coverSrc, sizes: "500x500", type: "image/jpeg" }]
+            });
+            navigator.mediaSession.setActionHandler("play", () => safePlay());
+            navigator.mediaSession.setActionHandler("pause", () => {
+                audio.pause();
+                updatePlayPauseUI(false);
+            });
+            navigator.mediaSession.setActionHandler("nexttrack", () => nextBtn.click());
+            navigator.mediaSession.setActionHandler("previoustrack", () => prevBtn.click());
+            navigator.mediaSession.playbackState = "playing";
+        }
 
         seekBar.value = 0;
         document.documentElement.style.setProperty("--progress", "0%");
@@ -353,9 +363,36 @@ async function loadSong(index) {
                 document.documentElement.style.setProperty("--bg-start", colors[0]);
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
                 skipCount = 0;
+
+                // Enhanced preloading with debug logs
+                const nextIndex = repeatMode === 1 ? index : (index + 1) % songs.length;
+                if (nextIndex !== index && nextIndex < songs.length) {
+                    const nextAudio = new Audio(songs[nextIndex].file);
+                    nextAudio.preload = "auto";
+                    nextAudio.volume = 0; // Silent preload
+                    nextAudio.play()
+                        .then(() => {
+                            nextAudio.pause();
+                            nextAudio.currentTime = 0;
+                            console.log("Next song buffered successfully:", songs[nextIndex].title);
+                        })
+                        .catch(e => console.error("Preload play error for", songs[nextIndex].title, ":", e));
+                    nextAudio.onloadedmetadata = () => console.log("Next song metadata loaded:", songs[nextIndex].title);
+                    const nextImg = new Image();
+                    nextImg.src = songs[nextIndex].cover || "images/default-cover.jpg";
+                    nextImg.onload = () => console.log("Next image loaded:", songs[nextIndex].title);
+                    nextImg.onerror = () => console.error("Next image load failed:", songs[nextIndex].cover);
+                    console.log("Preloading next song:", songs[nextIndex].title);
+                } else {
+                    console.log("No preloading: repeatMode =", repeatMode, "nextIndex =", nextIndex);
+                }
+
                 resolve();
             };
-            audio.onerror = () => reject(new Error("Audio metadata error"));
+            audio.onerror = () => {
+                console.error("Audio metadata error for:", songs[index].title);
+                reject(new Error("Audio metadata error"));
+            };
         });
     } catch (error) {
         console.error(`Error loading song: ${songs[index].title}`, error);
@@ -373,6 +410,7 @@ async function loadSong(index) {
         isLoading = false;
     }
 }
+
 function initializePlayer() {
     if (!playBtn || !pauseBtn || !equalizer || !albumCover) return;
     playBtn.style.display = "inline";
@@ -747,51 +785,75 @@ audio?.addEventListener("timeupdate", () => {
 
 // Line ~1100 (replace existing audio.ended listener)
 audio?.addEventListener("ended", () => {
-    console.log("Song ended:", { currentSong, repeatMode, songsLength: songs.length });
+    console.log("Song ended:", { 
+        currentSong, 
+        repeatMode, 
+        songsLength: songs.length, 
+        queueLength: queue.length, 
+        isRandomMode 
+    });
 
     if (songs.length === 0) {
         showToast("No songs available");
         updatePlayPauseUI(false);
+        console.log("No songs available, stopping playback");
         return;
     }
 
-    // Helper function to play next song
     const playNext = () => {
-        loadSong(currentSong).then(() => {
-            safePlay();
-            showToast(`Now Playing: ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-        }).catch(e => {
-            console.error("Next song load error:", e);
-            showToast("Error loading next song");
-        });
+        console.log("playNext called for song index:", currentSong);
+        loadSong(currentSong)
+            .then(() => {
+                console.log("loadSong resolved, attempting to play:", songs[currentSong].title);
+                safePlay();
+                showToast(`Now Playing: ${songs[currentSong].title}`);
+                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
+            })
+            .catch(e => {
+                console.error("Next song load error:", e, "Song:", songs[currentSong].title);
+                showToast("Error loading next song");
+                if (songs.length > 1 && skipCount < maxSkips) {
+                    skipCount++;
+                    currentSong = (currentSong + 1) % songs.length;
+                    console.log("Skipping to next song due to error, new index:", currentSong);
+                    playNext();
+                }
+            });
     };
 
     if (repeatMode === 1) {
+        console.log("Repeat One: Resetting current song");
         audio.currentTime = 0;
         safePlay();
     } else if (repeatMode === 2) {
         currentSong = (currentSong + 1) % songs.length;
+        console.log("Repeat All: Moving to next song, index:", currentSong);
         playNext();
     } else if (queue.length > 0) {
         const nextSong = queue.shift();
         currentSong = songs.findIndex(song => song.title === nextSong.title);
+        console.log("Queue: Playing next queued song, index:", currentSong);
         playNext();
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
+        console.log("Random: Selected random song, index:", currentSong);
         playNext();
     } else if ((currentSong + 1) < songs.length) {
         currentSong++;
+        console.log("No Repeat: Advancing to next song, index:", currentSong);
         playNext();
     } else {
+        console.log("End of playlist reached");
         updatePlayPauseUI(false);
         showToast("Playlist ended");
         if (isVoiceFeedbackEnabled) speak("Playlist ended");
     }
 
     // Update Media Session state
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = audio.paused ? "paused" : "playing";
+    if ("mediaSession" in navigator) {
+        const newState = audio.paused ? "paused" : "playing";
+        navigator.mediaSession.playbackState = newState;
+        console.log("Media Session updated to:", newState);
     }
 });
 
