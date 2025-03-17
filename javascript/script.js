@@ -11,6 +11,7 @@ const songTitle = document.getElementById("song-title");
 const albumCover = document.getElementById("album-cover");
 const miniCover = document.getElementById("mini-cover");
 const sidebar = document.getElementById("sidebar");
+const sidebarLinks = document.querySelectorAll('#sidebar a, .sidebar-btn, #voice-cmd-toggle, #category-filter, .sleep-timer-container');
 const menuBtn = document.getElementById("menu-btn");
 const closeSidebar = document.getElementById("close-sidebar");
 const randomBtn = document.getElementById("random-btn");
@@ -46,6 +47,10 @@ const toastSong = document.getElementById("toast-song");
 const voiceBtn = document.getElementById("voice-btn");
 const voiceCmdToggle = document.getElementById("voice-cmd-toggle");
 const resetPositionBtn = document.getElementById("reset-position");
+
+function removeActiveState() {
+    sidebarLinks.forEach(link => link.classList.remove('active'));
+}
 
 // Album Color Map (unchanged)
 const albumColorMap = {
@@ -157,55 +162,26 @@ let originalSongs = [
     // { title: "Ramuloo Ramulaa", file: "songs/[iSongs.info] 05 - Ramuloo Ramulaa.mp3", cover: "images/Ala-Vaikunthapurramuloo-Telugu-2019-20191026161003-500x500.jpg", liked: false, category: "Dance" }
 ];
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js", { scope: "/" })
             .then(registration => {
-                console.log('Service Worker registered successfully:', registration);
-                showToast('Service Worker registered');
+                console.log("Service Worker registered:", registration);
                 navigator.serviceWorker.ready.then(reg => {
                     if (reg.active) {
                         const assetsToCache = [
                             ...originalSongs.map(song => song.file),
-                            ...originalSongs.map(song => song.cover),
-                            '/', '/index.html', '/css_folder/style.css', '/javascript/script.js'
+                            ...originalSongs.map(song => song.cover || "images/default-cover.jpg"),
+                            "/", "/index.html", "/css_folder/style.css", "/javascript/script.js"
                         ];
                         reg.active.postMessage({
-                            type: 'UPDATE_CACHE',
+                            type: "UPDATE_CACHE",
                             assets: assetsToCache
                         });
-                    } else {
-                        console.warn('No active Service Worker found after registration');
                     }
                 });
             })
-            .catch(error => {
-                console.error('Service Worker registration failed:', error);
-                let errorMessage = 'Service Worker registration failed';
-                if (error.name === 'SecurityError') {
-                    errorMessage += ': Must be served over HTTPS or localhost';
-                } else if (error.message.includes('404')) {
-                    errorMessage += ': service-worker.js not found';
-                } else {
-                    errorMessage += `: ${error.message}`;
-                }
-                showToast(errorMessage);
-            });
-
-        navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data) {
-                switch (event.data.type) {
-                    case 'CACHE_UPDATED':
-                        showToast(`Cached ${event.data.assetsCached} assets for offline use!`);
-                        break;
-                    case 'CACHE_INSTALL_FAILED':
-                    case 'CACHE_UPDATE_FAILED':
-                        showToast(`Caching failed: ${event.data.error}`);
-                        console.error('Caching failed:', event.data.error);
-                        break;
-                }
-            }
-        });
+            .catch(error => console.error("Service Worker registration failed:", error));
     });
 }
 
@@ -225,6 +201,7 @@ let toastTimeout = null;
 let sleepTimerInterval = null;
 let remainingSeconds = 0;
 let isSleepTimerPaused = false;
+let playbackSpeed = 1.0;
 let isMiniPlayer = false;
 let isDragging = false;
 let currentX = 0, currentY = 0, initialX = 0, initialY = 0;
@@ -266,6 +243,27 @@ function formatTime(seconds) {
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs < 10 ? "0" + secs : secs}`;
 }
+// Line ~300 (after formatTime)
+function safePlay() {
+    audio.play().then(() => {
+        updatePlayPauseUI(true);
+        if ("mediaSession" in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+        }
+    }).catch(e => {
+        console.error("Playback blocked:", e);
+        showToast("Tap to resume playback");
+        document.addEventListener("touchstart", function resume() {
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                if ("mediaSession" in navigator) {
+                    navigator.mediaSession.playbackState = "playing";
+                }
+            });
+            document.removeEventListener("touchstart", resume);
+        }, { once: true });
+    });
+}
 
 function startSleepTimer(minutes) {
     if (sleepTimerInterval) clearInterval(sleepTimerInterval);
@@ -305,37 +303,52 @@ function loadLikedSongs() {
     }
 }
 
+
+// Line ~350 (replace existing loadSong)
 async function loadSong(index) {
     if (index < 0 || index >= songs.length || isLoading) return Promise.reject("Invalid index or loading");
-    if (songs.length <= 1 && skipCount >= maxSkips) {
-        showToast("No playable songs available");
-        return Promise.reject("No playable songs");
-    }
     isLoading = true;
-
     try {
         const response = await fetch(songs[index].file, { method: "HEAD" });
-        if (!response.ok) throw new Error("File not found or unavailable");
+        if (!response.ok) throw new Error("File not found");
 
         currentSong = index;
-        audio.src = songs[currentSong].file;
-        songTitle.textContent = songs[currentSong].title;
+        audio.src = songs[index].file;
+        songTitle.textContent = songs[index].title;
 
-        const albumImg = new Image();
-        albumImg.src = songs[currentSong].cover || "images/default-cover.jpg";
-        albumImg.onload = () => {
-            albumCover.src = albumImg.src;
-            miniCover.src = albumImg.src;
-        };
-        albumImg.onerror = () => {
+        // Set album cover
+        const coverSrc = songs[index].cover || "images/default-cover.jpg";
+        albumCover.src = coverSrc;
+        miniCover.src = coverSrc;
+        albumCover.onerror = () => {
             albumCover.src = "images/default-cover.jpg";
+        };
+        miniCover.onerror = () => {
             miniCover.src = "images/default-cover.jpg";
         };
 
+        // Media Session API
+        if ("mediaSession" in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: songs[index].title,
+                artist: "Unknown Artist",
+                album: "Danny Hub Playlist",
+                artwork: [{ src: coverSrc, sizes: "500x500", type: "image/jpeg" }]
+            });
+            navigator.mediaSession.setActionHandler("play", () => safePlay());
+            navigator.mediaSession.setActionHandler("pause", () => {
+                audio.pause();
+                updatePlayPauseUI(false);
+            });
+            navigator.mediaSession.setActionHandler("nexttrack", () => nextBtn.click());
+            navigator.mediaSession.setActionHandler("previoustrack", () => prevBtn.click());
+            navigator.mediaSession.playbackState = "playing";
+        }
+
         seekBar.value = 0;
         document.documentElement.style.setProperty("--progress", "0%");
-        likeBtn.textContent = songs[currentSong].liked ? "♥" : "♡";
-        likeBtn.classList.toggle("liked", songs[currentSong].liked);
+        likeBtn.textContent = songs[index].liked ? "♥" : "♡";
+        likeBtn.classList.toggle("liked", songs[index].liked);
         songTitle.style.animation = "fadeIn 0.3s";
         currentTimeDisplay.textContent = "0:00";
 
@@ -343,25 +356,56 @@ async function loadSong(index) {
             audio.onloadedmetadata = () => {
                 durationDisplay.textContent = formatTime(audio.duration);
                 seekBar.max = audio.duration;
+                audio.playbackRate = playbackSpeed;
                 initializePlayer();
                 updatePlaylistHighlight();
-                const colors = albumColorMap[songs[currentSong].cover] || ["#00c6ff", "#0072ff"];
+                const colors = albumColorMap[songs[index].cover] || ["#00c6ff", "#0072ff"];
                 document.documentElement.style.setProperty("--bg-start", colors[0]);
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
+                skipCount = 0;
+
+                // Enhanced preloading with debug logs
+                const nextIndex = repeatMode === 1 ? index : (index + 1) % songs.length;
+                if (nextIndex !== index && nextIndex < songs.length) {
+                    const nextAudio = new Audio(songs[nextIndex].file);
+                    nextAudio.preload = "auto";
+                    nextAudio.volume = 0; // Silent preload
+                    nextAudio.play()
+                        .then(() => {
+                            nextAudio.pause();
+                            nextAudio.currentTime = 0;
+                            console.log("Next song buffered successfully:", songs[nextIndex].title);
+                        })
+                        .catch(e => console.error("Preload play error for", songs[nextIndex].title, ":", e));
+                    nextAudio.onloadedmetadata = () => console.log("Next song metadata loaded:", songs[nextIndex].title);
+                    const nextImg = new Image();
+                    nextImg.src = songs[nextIndex].cover || "images/default-cover.jpg";
+                    nextImg.onload = () => console.log("Next image loaded:", songs[nextIndex].title);
+                    nextImg.onerror = () => console.error("Next image load failed:", songs[nextIndex].cover);
+                    console.log("Preloading next song:", songs[nextIndex].title);
+                } else {
+                    console.log("No preloading: repeatMode =", repeatMode, "nextIndex =", nextIndex);
+                }
+
                 resolve();
             };
-            audio.onerror = () => reject(new Error("Audio metadata error"));
+            audio.onerror = () => {
+                console.error("Audio metadata error for:", songs[index].title);
+                reject(new Error("Audio metadata error"));
+            };
         });
     } catch (error) {
         console.error(`Error loading song: ${songs[index].title}`, error);
         showToast(`Error loading "${songs[index].title}". Skipping...`);
         if (songs.length > 1 && skipCount < maxSkips) {
             skipCount++;
-            nextBtn.click();
+            const nextIndex = (index + 1) % songs.length;
+            return loadSong(nextIndex);
         } else {
-            showToast("All songs failed to load. Please check your files.");
+            showToast("All songs failed to load.");
+            updatePlayPauseUI(false);
+            return Promise.reject(error);
         }
-        return Promise.reject(error);
     } finally {
         isLoading = false;
     }
@@ -739,70 +783,77 @@ audio?.addEventListener("timeupdate", () => {
     document.documentElement.style.setProperty("--progress", `${progress}%`);
 });
 
+// Line ~1100 (replace existing audio.ended listener)
 audio?.addEventListener("ended", () => {
+    console.log("Song ended:", { 
+        currentSong, 
+        repeatMode, 
+        songsLength: songs.length, 
+        queueLength: queue.length, 
+        isRandomMode 
+    });
+
+    if (songs.length === 0) {
+        showToast("No songs available");
+        updatePlayPauseUI(false);
+        console.log("No songs available, stopping playback");
+        return;
+    }
+
+    const playNext = () => {
+        console.log("playNext called for song index:", currentSong);
+        loadSong(currentSong)
+            .then(() => {
+                console.log("loadSong resolved, attempting to play:", songs[currentSong].title);
+                safePlay();
+                showToast(`Now Playing: ${songs[currentSong].title}`);
+                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
+            })
+            .catch(e => {
+                console.error("Next song load error:", e, "Song:", songs[currentSong].title);
+                showToast("Error loading next song");
+                if (songs.length > 1 && skipCount < maxSkips) {
+                    skipCount++;
+                    currentSong = (currentSong + 1) % songs.length;
+                    console.log("Skipping to next song due to error, new index:", currentSong);
+                    playNext();
+                }
+            });
+    };
+
     if (repeatMode === 1) {
+        console.log("Repeat One: Resetting current song");
         audio.currentTime = 0;
-        audio.play().then(() => {
-            updatePlayPauseUI(true);
-            showToast(`Repeating: ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Repeating ${songs[currentSong].title}`);
-        }).catch(e => {
-            console.error("Play error:", e);
-            showToast("Playback error. Please interact with the page.");
-        });
+        safePlay();
+    } else if (repeatMode === 2) {
+        currentSong = (currentSong + 1) % songs.length;
+        console.log("Repeat All: Moving to next song, index:", currentSong);
+        playNext();
     } else if (queue.length > 0) {
         const nextSong = queue.shift();
-        const index = songs.findIndex(song => song.title === nextSong.title);
-        loadSong(index).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now playing from queue: ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
-        });
+        currentSong = songs.findIndex(song => song.title === nextSong.title);
+        console.log("Queue: Playing next queued song, index:", currentSong);
+        playNext();
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
-        loadSong(currentSong).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now playing (random): ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
-        });
+        console.log("Random: Selected random song, index:", currentSong);
+        playNext();
     } else if ((currentSong + 1) < songs.length) {
         currentSong++;
-        loadSong(currentSong).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now Playing: ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
-        });
-    } else if (repeatMode === 2) {
-        currentSong = 0;
-        loadSong(currentSong).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now Playing: ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
-        });
+        console.log("No Repeat: Advancing to next song, index:", currentSong);
+        playNext();
     } else {
+        console.log("End of playlist reached");
         updatePlayPauseUI(false);
         showToast("Playlist ended");
         if (isVoiceFeedbackEnabled) speak("Playlist ended");
+    }
+
+    // Update Media Session state
+    if ("mediaSession" in navigator) {
+        const newState = audio.paused ? "paused" : "playing";
+        navigator.mediaSession.playbackState = newState;
+        console.log("Media Session updated to:", newState);
     }
 });
 
@@ -910,7 +961,8 @@ searchInput?.addEventListener("input", debounce(() => {
 }, 300));
 
 speedControl?.addEventListener("change", () => {
-    audio.playbackRate = parseFloat(speedControl.value);
+    playbackSpeed = parseFloat(speedControl.value);
+    audio.playbackRate = playbackSpeed;
     showToast(`Speed set to ${speedControl.value}x`);
     if (isVoiceFeedbackEnabled) speak(`Speed set to ${speedControl.value}x`);
 });
@@ -1139,7 +1191,7 @@ voiceBtn?.addEventListener("click", () => {
     }
 });
 function handleVoiceCommand(command) {
-    if (!command.startsWith("danny")) {
+    if (!command.toLowerCase().startsWith("danny")) {
         const utterance = speak("Please start with 'Danny'", true);
         if (utterance) utterance.onend = () => showToast("Please start with 'Danny'");
         return;
@@ -1150,16 +1202,18 @@ function handleVoiceCommand(command) {
 
     const commands = {
         play: ["play", "start", "resume"],
-        pause: ["pause", "stop", "halt"],
+        pause: ["pause", "halt"],
+        stop: ["stop"], // Distinct from pause
         next: ["next", "skip", "forward"],
-        previous: ["previous", "back"],
+        previous: ["previous", "back", "rewind song"],
+        playNext: ["play next", "queue next"], // New: Queue the next song
         shuffle: ["shuffle", "random"],
         repeat: ["repeat", "loop"],
         like: ["like", "favorite", "heart"],
         mini: ["mini", "mini player"],
-        theme: ["theme", "mode"],
-        volumeUp: ["volume up", "louder"],
-        volumeDown: ["volume down", "quieter"],
+        theme: ["theme", "mode", "switch theme"],
+        volumeUp: ["volume up", "louder", "increase volume"],
+        volumeDown: ["volume down", "quieter", "decrease volume"],
         mute: ["mute", "silent"],
         unmute: ["unmute", "sound on"],
         home: ["home", "main"],
@@ -1168,361 +1222,455 @@ function handleVoiceCommand(command) {
         help: ["help", "commands", "shortcuts"],
         hideShortcuts: ["hide shortcuts", "close shortcuts"],
         library: ["library", "liked songs"],
-        sidebar: ["sidebar", "menu"],
+        sidebar: ["sidebar", "menu", "open menu"],
+        closeSidebar: ["close sidebar", "hide menu"],
         reset: ["reset", "reset mini"],
         queue: ["queue", "add to queue"],
         clearQueue: ["clear queue", "empty queue"],
-        restart: ["again","restart", "replay"],
+        restart: ["again", "restart", "replay"],
         sleepTimer: ["set sleep timer", "sleep timer", "sleep"],
         fastForward: ["fast forward", "skip ahead"],
         rewind: ["rewind", "go back"],
-        voiceOff: ["off voice feedback", "disable voice", "voice off"],
-        voiceOn: ["on voice feedback", "enable voice", "voice on"],
+        voiceOff: ["off voice feedback", "disable voice", "voice off", "turn voice off"],
+        voiceOn: ["on voice feedback", "enable voice", "voice on", "turn voice on"],
         setVolume: ["set volume", "volume to"],
         whatIsPlaying: ["what is playing", "now playing", "current song"],
         timeLeft: ["how much time is left", "time remaining", "time left"],
         duration: ["what’s the duration", "song length", "duration"],
         listQueue: ["list queue", "what’s in queue", "queue list"],
-        setSpeed: ["set speed", "speed to"],
+        setSpeed: ["set speed", "speed to", "playback speed"],
         filter: ["filter", "category"],
         cancelSleep: ["cancel sleep timer", "cancel sleep", "cancel"]
     };
 
+    // Find the best matching command
+    let matchedKey = null;
+    let maxScore = -1;
     for (const [key, keywords] of Object.entries(commands)) {
-        if (keywords.some(kw => action === kw || action.includes(kw))) { // Adjusted to match exact or partial
-            console.log("Matched command:", key); // Debug: Confirm which command is matched
-            switch (key) {
-                case "play":
-                    if (action.includes("song")) {
-                        handlePlaySongCommand(action);
-                    } else {
-                        playBtn?.click();
-                    }
-                    break;
-                case "pause":
-                    pauseBtn?.click();
-                    break;
-                case "next":
-                    nextBtn?.click();
-                    break;
-                case "previous":
-                    prevBtn?.click();
-                    break;
-                case "shuffle":
-                    randomBtn?.click();
-                    break;
-                case "repeat":
-                    repeatBtn?.click();
-                    break;
-                case "like":
-                    likeBtn?.click();
-                    break;
-                case "mini":
-                    miniToggle?.click();
-                    break;
-                case "theme":
-                    themeToggle?.click();
-                    break;
-                case "volumeUp":
-                    audio.volume = Math.min(1, audio.volume + 0.1);
-                    volumeControl.value = audio.volume;
-                    volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
-                    document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
-                    showToast("Volume Up");
-                    if (isVoiceFeedbackEnabled) speak("Volume Up");
-                    break;
-                case "volumeDown":
-                    audio.volume = Math.max(0, audio.volume - 0.1);
-                    volumeControl.value = audio.volume;
-                    volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
-                    document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
-                    showToast("Volume Down");
-                    if (isVoiceFeedbackEnabled) speak("Volume Down");
-                    break;
-                case "mute":
+        for (const kw of keywords) {
+            let score = 0;
+            if (action === kw) {
+                score = 100; // Exact match
+            } else if (action.includes(kw)) {
+                score = 50 + kw.length; // Partial match with length bonus
+            }
+            if (score > maxScore) {
+                maxScore = score;
+                matchedKey = key;
+            }
+        }
+    }
+
+    if (matchedKey && maxScore >= 50) {
+        console.log("Matched command:", matchedKey); // Debug: Confirm which command is matched
+        const respond = (message, speakMessage = message) => {
+            showToast(message);
+            if (isVoiceFeedbackEnabled) speak(speakMessage);
+        };
+
+        switch (matchedKey) {
+            case "play":
+                if (action.includes("song")) {
+                    handlePlaySongCommand(action);
+                } else if (audio.paused && audio.src) {
+                    playBtn?.click();
+                } else {
+                    respond("Nothing to play. Try 'play song [name]'");
+                }
+                break;
+            case "pause":
+                if (!audio.paused) pauseBtn?.click();
+                else respond("Already paused");
+                break;
+            case "stop":
+                if (!audio.paused) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    updatePlayPauseUI(false);
+                    respond("Stopped");
+                } else {
+                    respond("Already stopped");
+                }
+                break;
+            case "next":
+                nextBtn?.click();
+                break;
+            case "previous":
+                prevBtn?.click();
+                break;
+            case "playNext":
+                const nextIndex = (currentSong + 1) % songs.length;
+                queue.unshift(songs[nextIndex]);
+                respond(`Queued next: ${songs[nextIndex].title}`);
+                break;
+            case "shuffle":
+                randomBtn?.click();
+                break;
+            case "repeat":
+                repeatBtn?.click();
+                break;
+            case "like":
+                likeBtn?.click();
+                break;
+            case "mini":
+                miniToggle?.click();
+                break;
+            case "theme":
+                themeToggle?.click();
+                break;
+            case "volumeUp":
+                audio.volume = Math.min(1, audio.volume + 0.1);
+                volumeControl.value = audio.volume;
+                volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+                document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+                respond("Volume Up");
+                break;
+            case "volumeDown":
+                audio.volume = Math.max(0, audio.volume - 0.1);
+                volumeControl.value = audio.volume;
+                volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+                document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+                respond("Volume Down");
+                break;
+            case "mute":
+                if (audio.volume > 0) {
                     audio.volume = 0;
                     volumeControl.value = 0;
                     volumeIcon.textContent = "🔇";
                     document.documentElement.style.setProperty("--volume-progress", "0%");
-                    showToast("Muted");
-                    if (isVoiceFeedbackEnabled) speak("Muted");
-                    break;
-                case "unmute":
+                    respond("Muted");
+                } else {
+                    respond("Already muted");
+                }
+                break;
+            case "unmute":
+                if (audio.volume === 0) {
                     audio.volume = 1;
                     volumeControl.value = 1;
                     volumeIcon.textContent = "🔊";
                     document.documentElement.style.setProperty("--volume-progress", "100%");
-                    showToast("Unmuted");
-                    if (isVoiceFeedbackEnabled) speak("Unmuted");
-                    break;
-                case "home":
-                    homeLink?.click();
-                    break;
-                case "player":
-                    backToPlayer?.click();
-                    break;
-                case "search":
-                    searchInput?.focus();
-                    showToast("Search activated");
-                    if (isVoiceFeedbackEnabled) speak("Search activated");
-                    break;
-                case "help":
-                    shortcutBtn?.click();
-                    break;
-                case "hideShortcuts":
-                    console.log("shortcutClose element:", shortcutClose); // Debug: Check if element exists
-                    if (shortcutClose) {
-                        shortcutClose.click();
-                        showToast("Shortcuts closed");
-                        if (isVoiceFeedbackEnabled) speak("Shortcuts closed");
+                    respond("Unmuted");
+                } else {
+                    respond("Already unmuted");
+                }
+                break;
+            case "home":
+                homeLink?.click();
+                break;
+            case "player":
+                backToPlayer?.click();
+                break;
+            case "search":
+                searchInput?.focus();
+                respond("Search activated");
+                break;
+            case "help":
+                shortcutBtn?.click();
+                break;
+            case "hideShortcuts":
+                if (shortcutClose) {
+                    shortcutClose.click();
+                    respond("Shortcuts closed");
+                } else {
+                    respond("Shortcuts not open or button not found");
+                }
+                break;
+            case "library":
+                libraryBtn?.click();
+                break;
+            case "sidebar":
+                menuBtn?.click();
+                break;
+            case "closeSidebar":
+                closeSidebar?.click();
+                break;
+            case "reset":
+                resetPositionBtn?.click();
+                break;
+            case "queue":
+                const songName = action.replace(/add to queue|queue/i, "").trim();
+                if (songName) {
+                    const song = songs.find(s => s.title.toLowerCase().includes(songName));
+                    if (song) {
+                        queue.push(song);
+                        respond(`Added to queue: ${song.title}`);
                     } else {
-                        showToast("Shortcuts close button not found");
-                        if (isVoiceFeedbackEnabled) speak("Shortcuts close button not found");
+                        respond("Song not found");
                     }
-                    break;
-                case "library":
-                    libraryBtn?.click();
-                    break;
-                case "sidebar":
-                    if (action.includes("close")) {
-                        closeSidebar?.click();
-                    } else {
-                        menuBtn?.click();
-                    }
-                    break;
-                case "reset":
-                    resetPositionBtn?.click();
-                    break;
-                case "queue":
-                    const songName = action.replace(/add to queue|queue/i, "").trim();
-                    if (songName) {
-                        const song = songs.find(s => s.title.toLowerCase().includes(songName));
-                        if (song) {
-                            queue.push(song);
-                            showToast(`Added to queue: ${song.title}`);
-                            if (isVoiceFeedbackEnabled) speak(`Added to queue ${song.title}`);
-                        } else {
-                            showToast("Song not found");
-                            if (isVoiceFeedbackEnabled) speak("Song not found");
-                        }
-                    } else {
-                        showToast("Please specify a song to add to queue");
-                        if (isVoiceFeedbackEnabled) speak("Please specify a song to add to queue");
-                    }
-                    break;
-                case "clearQueue":
+                } else {
+                    respond("Please specify a song to add to queue");
+                }
+                break;
+            case "clearQueue":
+                if (queue.length > 0) {
                     queue = [];
-                    showToast("Queue cleared");
-                    if (isVoiceFeedbackEnabled) speak("Queue cleared");
-                    break;
-                case "restart":
+                    respond("Queue cleared");
+                } else {
+                    respond("Queue is already empty");
+                }
+                break;
+            case "restart":
+                if (audio.src) {
                     audio.currentTime = 0;
                     audio.play().then(() => {
                         updatePlayPauseUI(true);
-                        showToast(`Restarted: ${songs[currentSong].title}`);
-                        if (isVoiceFeedbackEnabled) speak(`Restarted ${songs[currentSong].title}`);
+                        respond(`Restarted: ${songs[currentSong].title}`);
                     }).catch(e => {
                         console.error("Play error:", e);
-                        showToast("Playback error. Please interact with the page.");
+                        respond("Playback error. Please interact with the page.");
                     });
-                    break;
-                case "sleepTimer":
-                    const timeMatch = action.match(/(\d+)/);
-                    if (timeMatch) {
-                        const minutes = parseInt(timeMatch[0]);
-                        if (minutes > 0 && minutes <= 120) {
-                            let optionExists = false;
-                            for (let option of sleepTimer.options) {
-                                if (parseInt(option.value) === minutes) {
-                                    optionExists = true;
-                                    break;
-                                }
+                } else {
+                    respond("No song loaded to restart");
+                }
+                break;
+            case "sleepTimer":
+                const timeMatch = action.match(/(\d+(\.\d+)?)/);
+                if (timeMatch) {
+                    const minutes = parseFloat(timeMatch[0]);
+                    if (minutes > 0 && minutes <= 120) {
+                        let optionExists = false;
+                        for (let option of sleepTimer.options) {
+                            if (parseFloat(option.value) === minutes) {
+                                optionExists = true;
+                                break;
                             }
-                            if (!optionExists) {
-                                const newOption = document.createElement("option");
-                                newOption.value = minutes;
-                                newOption.text = `${minutes} Minutes`;
-                                sleepTimer.appendChild(newOption);
-                            }
-                            sleepTimer.value = minutes;
-                            sleepTimer.dispatchEvent(new Event("change"));
-                        } else {
-                            showToast("Please specify a valid time between 1 and 120 minutes");
-                            if (isVoiceFeedbackEnabled) speak("Please specify a valid time between 1 and 120 minutes");
                         }
+                        if (!optionExists) {
+                            const newOption = document.createElement("option");
+                            newOption.value = minutes;
+                            newOption.text = `${minutes} Minutes`;
+                            sleepTimer.appendChild(newOption);
+                        }
+                        sleepTimer.value = minutes;
+                        sleepTimer.dispatchEvent(new Event("change"));
                     } else {
-                        showToast("Please specify a time in minutes");
-                        if (isVoiceFeedbackEnabled) speak("Please specify a time in minutes");
+                        respond("Please specify a time between 1 and 120 minutes");
                     }
-                    break;
-                case "cancelSleep":
-                    if (sleepTimerInterval) {
-                        clearInterval(sleepTimerInterval);
-                        sleepTimerInterval = null;
-                        sleepTimerDisplay.style.display = "none";
-                        remainingSeconds = 0;
-                        sleepTimer.value = "0";
-                        showToast("Sleep Timer Canceled");
-                        if (isVoiceFeedbackEnabled) speak("Sleep Timer Canceled");
-                    } else {
-                        showToast("No active sleep timer to cancel");
-                        if (isVoiceFeedbackEnabled) speak("No active sleep timer to cancel");
-                    }
-                    break;
-                case "fastForward":
-                    const ffSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+                } else {
+                    respond("Please specify a time in minutes");
+                }
+                break;
+            case "fastForward":
+                const ffSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+                if (!isNaN(audio.duration)) {
                     audio.currentTime = Math.min(audio.duration, audio.currentTime + ffSeconds);
-                    showToast(`Fast forwarded ${ffSeconds} seconds`);
-                    if (isVoiceFeedbackEnabled) speak(`Fast forwarded ${ffSeconds} seconds`);
-                    break;
-                case "rewind":
-                    const rwSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+                    respond(`Fast forwarded ${ffSeconds} seconds`);
+                } else {
+                    respond("No song loaded");
+                }
+                break;
+            case "rewind":
+                const rwSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
+                if (!isNaN(audio.duration)) {
                     audio.currentTime = Math.max(0, audio.currentTime - rwSeconds);
-                    showToast(`Rewound ${rwSeconds} seconds`);
-                    if (isVoiceFeedbackEnabled) speak(`Rewound ${rwSeconds} seconds`);
-                    break;
-                case "voiceOff":
-                    if (isVoiceFeedbackEnabled) {
-                        voiceCmdToggle?.click();
+                    respond(`Rewound ${rwSeconds} seconds`);
+                } else {
+                    respond("No song loaded");
+                }
+                break;
+            case "voiceOff":
+                if (isVoiceFeedbackEnabled) voiceCmdToggle?.click();
+                else respond("Voice feedback is already off", "Voice feedback is already off", true);
+                break;
+            case "voiceOn":
+                if (!isVoiceFeedbackEnabled) voiceCmdToggle?.click();
+                else respond("Voice feedback is already on");
+                break;
+            case "setVolume":
+                const volMatch = action.match(/(\d+)/);
+                if (volMatch) {
+                    const volume = parseInt(volMatch[0]);
+                    if (volume >= 0 && volume <= 100) {
+                        audio.volume = volume / 100;
+                        volumeControl.value = audio.volume;
+                        volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
+                        document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
+                        respond(`Volume set to ${volume}%`);
                     } else {
-                        showToast("Voice feedback is already off");
-                        speak("Voice feedback is already off", true);
+                        respond("Please specify a volume between 0 and 100");
                     }
-                    break;
-                case "voiceOn":
-                    if (!isVoiceFeedbackEnabled) {
-                        voiceCmdToggle?.click();
+                } else {
+                    respond("Please specify a volume percentage");
+                }
+                break;
+            case "whatIsPlaying":
+                const currentTitle = songs[currentSong]?.title || "No song playing";
+                respond(`Now playing: ${currentTitle}`);
+                break;
+            case "timeLeft":
+                if (isNaN(audio.duration) || isNaN(audio.currentTime)) {
+                    respond("No song is currently playing");
+                } else {
+                    const timeRemaining = audio.duration - audio.currentTime;
+                    const formattedTime = formatTime(timeRemaining);
+                    respond(`Time left: ${formattedTime}`);
+                }
+                break;
+            case "duration":
+                if (isNaN(audio.duration)) {
+                    respond("No song is currently playing");
+                } else {
+                    const formattedDuration = formatTime(audio.duration);
+                    respond(`Duration: ${formattedDuration}`);
+                }
+                break;
+            case "listQueue":
+                if (queue.length === 0) {
+                    respond("Queue is empty");
+                } else {
+                    const queueList = queue.map((song, index) => `${index + 1}. ${song.title}`).join(", ");
+                    respond(`Queue: ${queueList}`);
+                }
+                break;
+            case "setSpeed":
+                const speedMatch = action.match(/(\d*\.?\d+)/);
+                if (speedMatch) {
+                    const speed = parseFloat(speedMatch[0]);
+                    if (speed >= 0.5 && speed <= 2) {
+                        speedControl.value = speed;
+                        speedControl.dispatchEvent(new Event("change"));
                     } else {
-                        showToast("Voice feedback is already on");
-                        if (isVoiceFeedbackEnabled) speak("Voice feedback is already on");
+                        respond("Please specify a speed between 0.5 and 2");
                     }
-                    break;
-                case "setVolume":
-                    const volMatch = action.match(/(\d+)/);
-                    if (volMatch) {
-                        const volume = parseInt(volMatch[0]);
-                        if (volume >= 0 && volume <= 100) {
-                            audio.volume = volume / 100;
-                            volumeControl.value = audio.volume;
-                            volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
-                            document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
-                            showToast(`Volume set to ${volume}%`);
-                            if (isVoiceFeedbackEnabled) speak(`Volume set to ${volume} percent`);
-                        } else {
-                            showToast("Please specify a volume between 0 and 100");
-                            if (isVoiceFeedbackEnabled) speak("Please specify a volume between 0 and 100");
-                        }
-                    } else {
-                        showToast("Please specify a volume percentage");
-                        if (isVoiceFeedbackEnabled) speak("Please specify a volume percentage");
-                    }
-                    break;
-                case "whatIsPlaying":
-                    const currentTitle = songs[currentSong]?.title || "No song playing";
-                    showToast(`Now playing: ${currentTitle}`);
-                    if (isVoiceFeedbackEnabled) speak(`Now playing ${currentTitle}`);
-                    break;
-                case "timeLeft":
-                    if (isNaN(audio.duration) || isNaN(audio.currentTime)) {
-                        showToast("No song loaded");
-                        if (isVoiceFeedbackEnabled) speak("No song loaded");
-                    } else {
-                        const timeRemaining = audio.duration - audio.currentTime;
-                        const formattedTime = formatTime(timeRemaining);
-                        showToast(`Time left: ${formattedTime}`);
-                        if (isVoiceFeedbackEnabled) speak(`Time left ${formattedTime}`);
-                    }
-                    break;
-                case "duration":
-                    if (isNaN(audio.duration)) {
-                        showToast("No song loaded");
-                        if (isVoiceFeedbackEnabled) speak("No song loaded");
-                    } else {
-                        const formattedDuration = formatTime(audio.duration);
-                        showToast(`Duration: ${formattedDuration}`);
-                        if (isVoiceFeedbackEnabled) speak(`Duration ${formattedDuration}`);
-                    }
-                    break;
-                case "listQueue":
-                    if (queue.length === 0) {
-                        showToast("Queue is empty");
-                        if (isVoiceFeedbackEnabled) speak("Queue is empty");
-                    } else {
-                        const queueList = queue.map((song, index) => `${index + 1}. ${song.title}`).join(", ");
-                        showToast(`Queue: ${queueList}`);
-                        if (isVoiceFeedbackEnabled) speak(`Queue contains ${queueList}`);
-                    }
-                    break;
-                case "setSpeed":
-                    const speedMatch = action.match(/(\d*\.?\d+)/);
-                    if (speedMatch) {
-                        const speed = parseFloat(speedMatch[0]);
-                        if (speed >= 0.5 && speed <= 2) {
-                            speedControl.value = speed;
-                            speedControl.dispatchEvent(new Event("change"));
-                        } else {
-                            showToast("Please specify a speed between 0.5 and 2");
-                            if (isVoiceFeedbackEnabled) speak("Please specify a speed between 0.5 and 2");
-                        }
-                    } else {
-                        showToast("Please specify a playback speed");
-                        if (isVoiceFeedbackEnabled) speak("Please specify a playback speed");
-                    }
-                    break;
-                case "filter":
-                    const categoryMatch = action.match(/pop|rock|dance|all/i);
-                    if (categoryMatch) {
-                        const category = categoryMatch[0].toLowerCase();
-                        categoryFilter.value = category === "all" ? "all" : category.charAt(0).toUpperCase() + category.slice(1);
-                        categoryFilter.dispatchEvent(new Event("change"));
-                    } else {
-                        showToast("Please specify a category: Pop, Rock, Dance, or All");
-                        if (isVoiceFeedbackEnabled) speak("Please specify a category: Pop, Rock, Dance, or All");
-                    }
-                    break;
-            }
-            return;
+                } else {
+                    respond("Please specify a playback speed");
+                }
+                break;
+            case "filter":
+                const categoryMatch = action.match(/pop|rock|dance|all/i);
+                if (categoryMatch) {
+                    const category = categoryMatch[0].toLowerCase();
+                    categoryFilter.value = category === "all" ? "all" : category.charAt(0).toUpperCase() + category.slice(1);
+                    categoryFilter.dispatchEvent(new Event("change"));
+                } else {
+                    respond("Please specify a category: Pop, Rock, Dance, or All");
+                }
+                break;
+            case "cancelSleep":
+                if (sleepTimerInterval) {
+                    clearInterval(sleepTimerInterval);
+                    sleepTimerInterval = null;
+                    sleepTimerDisplay.style.display = "none";
+                    remainingSeconds = 0;
+                    sleepTimer.value = "0";
+                    respond("Sleep Timer Canceled");
+                } else {
+                    respond("No active sleep timer to cancel");
+                }
+                break;
         }
+        return;
     }
 
     const utterance = speak("Command not recognized", true);
     if (utterance) utterance.onend = () => showToast("Command not recognized");
 }
 function handlePlaySongCommand(action) {
-    // Extract song name more flexibly
+    // Extract song name by removing common keywords
     const keywordsToRemove = ["danny", "play", "song", "the", "now", "please"];
-    let songName = action.toLowerCase();
+    let songName = action.toLowerCase().trim();
+    if (!songName) {
+        showToast("Please specify a song name");
+        if (isVoiceFeedbackEnabled) speak("Please specify a song name");
+        return;
+    }
+
     keywordsToRemove.forEach(keyword => {
         songName = songName.replace(new RegExp(`\\b${keyword}\\b`, "gi"), "").trim();
     });
 
-    // Search in originalSongs to ensure all songs are searchable, not just the current filtered list
-    const songIndex = originalSongs.findIndex(song => {
-        const titleLower = song.title.toLowerCase();
-        const titleNoSpaces = titleLower.replace(/\s/g, "");
-        const queryNoSpaces = songName.replace(/\s/g, "");
-        return (
-            titleLower.includes(songName) ||           // Exact substring match
-            titleNoSpaces.includes(queryNoSpaces) ||   // Space-removed match
-            titleLower.split(" ").some(word =>         // Match any word in title
-                songName.includes(word) && word.length > 2
-            )
-        );
-    });
+    // Simple Levenshtein distance function for typo tolerance
+    const levenshteinDistance = (a, b) => {
+        const dp = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
+        for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+        for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+        for (let i = 1; i <= a.length; i++) {
+            for (let j = 1; j <= b.length; j++) {
+                const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1, // deletion
+                    dp[i][j - 1] + 1, // insertion
+                    dp[i - 1][j - 1] + indicator // substitution
+                );
+            }
+        }
+        return dp[a.length][b.length];
+    };
+
+    // Enhanced flexible matching function with scoring
+    const findSongIndex = (songList, query) => {
+        if (!songList.length) return -1;
+
+        const cleanQuery = query.replace(/[^a-z0-9\s]/g, "").trim();
+        if (!cleanQuery) return -1;
+
+        const queryWords = cleanQuery.split(/\s+/).filter(w => w.length > 1);
+
+        let bestMatch = { index: -1, score: -1 };
+        const titleCache = new Map(); // Cache cleaned titles
+
+        for (let i = 0; i < songList.length; i++) {
+            const song = songList[i];
+            const titleLower = song.title.toLowerCase();
+            let cleanTitle = titleCache.get(titleLower);
+            if (!cleanTitle) {
+                cleanTitle = titleLower.replace(/[^a-z0-9\s]/g, "");
+                titleCache.set(titleLower, cleanTitle);
+            }
+
+            // Quick exact match check
+            if (cleanTitle === cleanQuery) return i;
+
+            const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 1);
+            let score = 0;
+
+            // Word overlap score
+            const matchingWords = queryWords.filter(qw => titleWords.includes(qw)).length;
+            score += matchingWords * 10; // High weight for word matches
+
+            // Containment bonus
+            if (cleanTitle.includes(cleanQuery)) score += 5;
+
+            // Levenshtein distance for typo tolerance (normalized)
+            const distance = levenshteinDistance(cleanQuery, cleanTitle);
+            const maxLen = Math.max(cleanQuery.length, cleanTitle.length);
+            const similarity = 1 - (distance / maxLen);
+            score += similarity * 3; // Lower weight for similarity
+
+            if (score > bestMatch.score) {
+                bestMatch = { index: i, score };
+            }
+        }
+
+        // Threshold to consider a match valid (adjustable)
+        return bestMatch.score >= 5 ? bestMatch.index : -1;
+    };
+
+    let songIndex = findSongIndex(songs, songName);
+
+    // If not found in current list, search full list
+    if (songIndex === -1) {
+        songIndex = findSongIndex(originalSongs, songName);
+        if (songIndex !== -1) {
+            // Add to current list only if not already present
+            const songToAdd = originalSongs[songIndex];
+            const existsInSongs = songs.some(s => s.title === songToAdd.title);
+            if (!existsInSongs) {
+                songs.push(songToAdd);
+                songIndex = songs.length - 1;
+                populatePlaylist();
+            } else {
+                songIndex = songs.findIndex(s => s.title === songToAdd.title);
+            }
+        }
+    }
 
     if (songIndex !== -1) {
-        // If the song isn't in the current songs array, reset to full list
-        if (!songs.some(s => s.title === originalSongs[songIndex].title)) {
-            songs = [...originalSongs];
-            populatePlaylist();
-        }
-        const currentIndex = songs.findIndex(s => s.title === originalSongs[songIndex].title);
-        
-        loadSong(currentIndex).then(() => {
+        loadSong(songIndex).then(() => {
             audio.play().then(() => {
                 updatePlayPauseUI(true);
-                showToast(`Now Playing: ${songs[currentIndex].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentIndex].title}`);
+                showToast(`Now Playing: ${songs[songIndex].title}`);
+                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[songIndex].title}`);
             }).catch(e => {
                 console.error("Play error:", e);
                 showToast("Failed to play the song");
@@ -1534,22 +1682,31 @@ function handlePlaySongCommand(action) {
             if (isVoiceFeedbackEnabled) speak("Error loading song");
         });
     } else {
-        // Suggest similar songs if no exact match
+        // Suggest similar songs with scoring
         const closeMatches = originalSongs
-            .filter(song => {
-                const titleLower = song.title.toLowerCase();
-                return titleLower.split(" ").some(word => songName.includes(word));
+            .map(song => {
+                const cleanTitle = song.title.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+                const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 1);
+                const queryWords = songName.split(/\s+/).filter(w => w.length > 1);
+                const matchingWords = queryWords.filter(qw => titleWords.includes(qw)).length;
+                const distance = levenshteinDistance(songName, cleanTitle);
+                const maxLen = Math.max(songName.length, cleanTitle.length);
+                const similarity = 1 - (distance / maxLen);
+                const score = (matchingWords * 10) + (similarity * 3);
+                return { title: song.title, score };
             })
-            .slice(0, 3)
-            .map(song => song.title);
+            .filter(match => match.score >= 5) // Minimum score threshold for suggestions
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3) // Limit to top 3 suggestions
+            .map(match => match.title);
 
         if (closeMatches.length > 0) {
-            const suggestionText = `Did you mean: ${closeMatches.join(", ")}?`;
-            showToast(`Song not found. ${suggestionText}`);
-            if (isVoiceFeedbackEnabled) speak(`Song not found. ${suggestionText}`);
+            const suggestionText = `Did you mean: ${closeMatches.join(", ")}? Try saying the full name.`;
+            showToast(`Song "${songName}" not found. ${suggestionText}`);
+            if (isVoiceFeedbackEnabled) speak(`Song ${songName} not found. ${suggestionText}`);
         } else {
-            showToast("Song not found");
-            if (isVoiceFeedbackEnabled) speak("Song not found");
+            showToast(`Song "${songName}" not found. No similar songs available.`);
+            if (isVoiceFeedbackEnabled) speak(`Song ${songName} not found. No similar songs available.`);
         }
     }
 }
@@ -2087,6 +2244,12 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
     }
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            removeActiveState(); // Remove active from all
+            link.classList.add('active'); // Add active to clicked link
+        });
+    });
 
     loadLikedSongs();
     populatePlaylist();
