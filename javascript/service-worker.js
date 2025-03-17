@@ -1,3 +1,5 @@
+// service-worker.js
+
 // Cache name and version
 const CACHE_NAME = 'danny-hub-cache-v1';
 
@@ -6,8 +8,7 @@ const INITIAL_ASSETS = [
     '/',
     '/index.html',
     '/css_folder/style.css',
-    '/javascript/script.js',
-    '/images/default-cover.jpg' // Fallback image for offline use
+    '/javascript/script.js'
 ];
 
 // Install event: Cache initial assets
@@ -84,7 +85,7 @@ self.addEventListener('fetch', (event) => {
                     // Fetch from network and cache
                     return fetch(request, { cache: 'no-store' })
                         .then(networkResponse => {
-                            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                            if (!networkResponse || networkResponse.status !== 200) {
                                 return networkResponse;
                             }
                             const responseToCache = networkResponse.clone();
@@ -98,8 +99,7 @@ self.addEventListener('fetch', (event) => {
                         })
                         .catch(err => {
                             console.error('Service Worker: Audio fetch failed:', err);
-                            // Optional: Return a fallback audio file if available
-                            return caches.match('/songs/default.mp3') || new Response('Audio unavailable offline', { status: 503 });
+                            return new Response('Audio unavailable offline', { status: 503 });
                         });
                 })
                 .catch(err => {
@@ -108,7 +108,7 @@ self.addEventListener('fetch', (event) => {
                 })
         );
     } else {
-        // General handling for other requests (HTML, CSS, JS, images, etc.)
+        // General handling for other requests (HTML, CSS, JS, etc.)
         event.respondWith(
             caches.match(request)
                 .then(cachedResponse => {
@@ -128,7 +128,7 @@ self.addEventListener('fetch', (event) => {
 
                     return fetch(request)
                         .then(networkResponse => {
-                            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                            if (!networkResponse || networkResponse.status !== 200) {
                                 return networkResponse;
                             }
                             const responseToCache = networkResponse.clone();
@@ -225,11 +225,9 @@ self.addEventListener('message', (event) => {
 
         case 'KEEP_ALIVE':
             console.log('Service Worker: Received KEEP_ALIVE message');
-            // Keep the Service Worker alive for background audio playback
+            // Keep the Service Worker alive for background tasks (e.g., audio playback)
             event.waitUntil(
-                new Promise(resolve => {
-                    setTimeout(resolve, 1000); // Minimal delay to keep alive
-                })
+                new Promise(resolve => setTimeout(resolve, 1000)) // Minimal delay to keep alive
             );
             break;
 
@@ -246,5 +244,5 @@ self.addEventListener('message', (event) => {
 // Optional: Handle sync events (for future enhancements)
 self.addEventListener('sync', (event) => {
     console.log('Service Worker: Background sync event:', event.tag);
-    // Placeholder for future sync functionality (e.g., syncing queued actions)
+    // Placeholder for future sync functionality
 });
