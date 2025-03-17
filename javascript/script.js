@@ -1,4 +1,4 @@
-// DOM Elements (unchanged)
+// DOM Elements
 const audio = document.getElementById("audio");
 const playBtn = document.getElementById("play");
 const pauseBtn = document.getElementById("pause");
@@ -48,7 +48,7 @@ const voiceBtn = document.getElementById("voice-btn");
 const voiceCmdToggle = document.getElementById("voice-cmd-toggle");
 const resetPositionBtn = document.getElementById("reset-position");
 
-// Album Color Map (unchanged)
+// Album Color Map (unchanged from your original)
 const albumColorMap = {
     "images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg": ["#ff6f61", "#ff9b71"],
     "images/Fear-Song-From-Devara-Part-1-Telugu-Telugu-2024-20240519131003-500x500.jpg": ["#4a90e2", "#50e3c2"],
@@ -98,7 +98,7 @@ const albumColorMap = {
     "images/Ala-Vaikunthapurramuloo-Telugu-2019-20191026161003-500x500.jpg": ["#ff4500", "#ff8c00"]
 };
 
-// State Variables (unchanged)
+// State Variables
 let originalSongs = [
     { title: "Chuttamalle", file: "songs/[iSongs.info] 03 - Chuttamalle.mp3", cover: "images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg", liked: false, category: "Pop" },
     { title: "Fear song", file: "songs/[iSongs.info] 02 - Fear Song.mp3", cover: "images/Fear-Song-From-Devara-Part-1-Telugu-Telugu-2024-20240519131003-500x500.jpg", liked: false, category: "Rock" },
@@ -153,6 +153,7 @@ let originalSongs = [
     { title: "Ney Ready", file: "songs/[iSongs.info] 06 - Ney Ready.mp3", cover: "images/naready.jpg", liked: false, category: "Rock" },
 ];
 
+// Service Worker Registration
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("/service-worker.js", { scope: "/" })
@@ -346,11 +347,10 @@ async function loadSong(index) {
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
                 skipCount = 0;
 
-                // Simplified preloading for mobile compatibility
                 const nextIndex = repeatMode === 1 ? index : (index + 1) % songs.length;
                 if (nextIndex !== index && nextIndex < songs.length) {
                     const nextAudio = new Audio(songs[nextIndex].file);
-                    nextAudio.preload = "metadata"; // Less resource-intensive
+                    nextAudio.preload = "metadata";
                     nextAudio.onloadedmetadata = () => console.log("Preloaded metadata:", songs[nextIndex].title);
                 }
 
@@ -443,7 +443,7 @@ function setActiveSidebarButton(button) {
     activeSidebarBtn = button;
 }
 
-// Voice Activation Functions (unchanged)
+// Voice Activation Functions
 function startVoiceActivation() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -1243,12 +1243,8 @@ function handleVoiceCommand(command) {
                 shortcutBtn?.click();
                 break;
             case "hideShortcuts":
-                if (shortcutClose) {
-                    shortcutClose.click();
-                    respond("Shortcuts closed");
-                } else {
-                    respond("Shortcuts not open or button not found");
-                }
+                shortcutClose?.click();
+                respond("Shortcuts closed");
                 break;
             case "library":
                 libraryBtn?.click();
@@ -1277,143 +1273,73 @@ function handleVoiceCommand(command) {
                 }
                 break;
             case "clearQueue":
-                if (queue.length > 0) {
-                    queue = [];
-                    respond("Queue cleared");
-                } else {
-                    respond("Queue is already empty");
-                }
+                queue = [];
+                respond("Queue cleared");
                 break;
             case "restart":
-                if (audio.src) {
-                    audio.currentTime = 0;
-                    safePlay();
-                } else {
-                    respond("No song loaded to restart");
-                }
+                audio.currentTime = 0;
+                safePlay();
                 break;
             case "sleepTimer":
                 const timeMatch = action.match(/(\d+(\.\d+)?)/);
                 if (timeMatch) {
                     const minutes = parseFloat(timeMatch[0]);
-                    if (minutes > 0 && minutes <= 120) {
-                        let optionExists = false;
-                        for (let option of sleepTimer.options) {
-                            if (parseFloat(option.value) === minutes) {
-                                optionExists = true;
-                                break;
-                            }
-                        }
-                        if (!optionExists) {
-                            const newOption = document.createElement("option");
-                            newOption.value = minutes;
-                            newOption.text = `${minutes} Minutes`;
-                            sleepTimer.appendChild(newOption);
-                        }
-                        sleepTimer.value = minutes;
-                        sleepTimer.dispatchEvent(new Event("change"));
-                    } else {
-                        respond("Please specify a time between 1 and 120 minutes");
-                    }
+                    sleepTimer.value = minutes;
+                    sleepTimer.dispatchEvent(new Event("change"));
                 } else {
                     respond("Please specify a time in minutes");
                 }
                 break;
             case "fastForward":
-                const ffSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
-                if (!isNaN(audio.duration)) {
-                    audio.currentTime = Math.min(audio.duration, audio.currentTime + ffSeconds);
-                    respond(`Fast forwarded ${ffSeconds} seconds`);
-                } else {
-                    respond("No song loaded");
-                }
+                audio.currentTime += 10;
+                respond("Fast forwarded 10 seconds");
                 break;
             case "rewind":
-                const rwSeconds = action.match(/(\d+)/) ? parseInt(action.match(/(\d+)/)[0]) : 10;
-                if (!isNaN(audio.duration)) {
-                    audio.currentTime = Math.max(0, audio.currentTime - rwSeconds);
-                    respond(`Rewound ${rwSeconds} seconds`);
-                } else {
-                    respond("No song loaded");
-                }
+                audio.currentTime -= 10;
+                respond("Rewound 10 seconds");
                 break;
             case "voiceOff":
                 if (isVoiceFeedbackEnabled) voiceCmdToggle?.click();
-                else respond("Voice feedback is already off", "Voice feedback is already off", true);
                 break;
             case "voiceOn":
                 if (!isVoiceFeedbackEnabled) voiceCmdToggle?.click();
-                else respond("Voice feedback is already on");
                 break;
             case "setVolume":
                 const volMatch = action.match(/(\d+)/);
                 if (volMatch) {
-                    const volume = parseInt(volMatch[0]);
-                    if (volume >= 0 && volume <= 100) {
-                        audio.volume = volume / 100;
-                        volumeControl.value = audio.volume;
-                        volumeIcon.textContent = audio.volume === 0 ? "🔇" : "🔊";
-                        document.documentElement.style.setProperty("--volume-progress", `${audio.volume * 100}%`);
-                        respond(`Volume set to ${volume}%`);
-                    } else {
-                        respond("Please specify a volume between 0 and 100");
-                    }
-                } else {
-                    respond("Please specify a volume percentage");
+                    const volume = parseInt(volMatch[0]) / 100;
+                    audio.volume = volume;
+                    volumeControl.value = volume;
+                    volumeIcon.textContent = volume === 0 ? "🔇" : "🔊";
+                    document.documentElement.style.setProperty("--volume-progress", `${volume * 100}%`);
+                    respond(`Volume set to ${volMatch[0]}%`);
                 }
                 break;
             case "whatIsPlaying":
-                const currentTitle = songs[currentSong]?.title || "No song playing";
-                respond(`Now playing: ${currentTitle}`);
+                respond(`Now playing: ${songs[currentSong].title}`);
                 break;
             case "timeLeft":
-                if (isNaN(audio.duration) || isNaN(audio.currentTime)) {
-                    respond("No song is currently playing");
-                } else {
-                    const timeRemaining = audio.duration - audio.currentTime;
-                    const formattedTime = formatTime(timeRemaining);
-                    respond(`Time left: ${formattedTime}`);
-                }
+                respond(`Time left: ${formatTime(audio.duration - audio.currentTime)}`);
                 break;
             case "duration":
-                if (isNaN(audio.duration)) {
-                    respond("No song is currently playing");
-                } else {
-                    const formattedDuration = formatTime(audio.duration);
-                    respond(`Duration: ${formattedDuration}`);
-                }
+                respond(`Duration: ${formatTime(audio.duration)}`);
                 break;
             case "listQueue":
-                if (queue.length === 0) {
-                    respond("Queue is empty");
-                } else {
-                    const queueList = queue.map((song, index) => `${index + 1}. ${song.title}`).join(", ");
-                    respond(`Queue: ${queueList}`);
-                }
+                respond(queue.length > 0 ? `Queue: ${queue.map(s => s.title).join(", ")}` : "Queue is empty");
                 break;
             case "setSpeed":
                 const speedMatch = action.match(/(\d*\.?\d+)/);
                 if (speedMatch) {
-                    const speed = parseFloat(speedMatch[0]);
-                    if (speed >= 0.5 && speed <= 2) {
-                        speedControl.value = speed;
-                        speedControl.dispatchEvent(new Event("change"));
-                    } else {
-                        respond("Please specify a speed between 0.5 and 2");
-                    }
-                } else {
-                    respond("Please specify a playback speed");
+                    playbackSpeed = parseFloat(speedMatch[0]);
+                    audio.playbackRate = playbackSpeed;
+                    speedControl.value = playbackSpeed;
+                    respond(`Speed set to ${playbackSpeed}x`);
                 }
                 break;
             case "filter":
-                const categoryMatch = action.match(/pop|rock|dance|all/i);
-                if (categoryMatch) {
-                    const category = categoryMatch[0].toLowerCase();
-                    categoryFilter.value = category === "all" ? "all" : category.charAt(0).toUpperCase() + category.slice(1);
-                    categoryFilter.dispatchEvent(new Event("change"));
-                } else {
-                    respond("Please specify a category: Pop, Rock, Dance, or All");
-                }
+                const category = action.match(/pop|rock|dance|all/i)?.[0] || "all";
+                categoryFilter.value = category;
+                categoryFilter.dispatchEvent(new Event("change"));
                 break;
             case "cancelSleep":
                 if (sleepTimerInterval) {
@@ -1424,7 +1350,7 @@ function handleVoiceCommand(command) {
                     sleepTimer.value = "0";
                     respond("Sleep Timer Canceled");
                 } else {
-                    respond("No active sleep timer to cancel");
+                    respond("No active sleep timer");
                 }
                 break;
         }
@@ -1438,96 +1364,21 @@ function handleVoiceCommand(command) {
 function handlePlaySongCommand(action) {
     const keywordsToRemove = ["danny", "play", "song", "the", "now", "please"];
     let songName = action.toLowerCase().trim();
-    if (!songName) {
-        showToast("Please specify a song name");
-        if (isVoiceFeedbackEnabled) speak("Please specify a song name");
-        return;
-    }
-
     keywordsToRemove.forEach(keyword => {
         songName = songName.replace(new RegExp(`\\b${keyword}\\b`, "gi"), "").trim();
     });
 
-    const levenshteinDistance = (a, b) => {
-        const dp = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
-        for (let i = 0; i <= a.length; i++) dp[i][0] = i;
-        for (let j = 0; j <= b.length; j++) dp[0][j] = j;
-        for (let i = 1; i <= a.length; i++) {
-            for (let j = 1; j <= b.length; j++) {
-                const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
-                dp[i][j] = Math.min(
-                    dp[i - 1][j] + 1,
-                    dp[i][j - 1] + 1,
-                    dp[i - 1][j - 1] + indicator
-                );
-            }
-        }
-        return dp[a.length][b.length];
-    };
-
-    const findSongIndex = (songList, query) => {
-        if (!songList.length) return -1;
-
-        const cleanQuery = query.replace(/[^a-z0-9\s]/g, "").trim();
-        if (!cleanQuery) return -1;
-
-        const queryWords = cleanQuery.split(/\s+/).filter(w => w.length > 1);
-
-        let bestMatch = { index: -1, score: -1 };
-        const titleCache = new Map();
-
-        for (let i = 0; i < songList.length; i++) {
-            const song = songList[i];
-            const titleLower = song.title.toLowerCase();
-            let cleanTitle = titleCache.get(titleLower);
-            if (!cleanTitle) {
-                cleanTitle = titleLower.replace(/[^a-z0-9\s]/g, "");
-                titleCache.set(titleLower, cleanTitle);
-            }
-
-            if (cleanTitle === cleanQuery) return i;
-
-            const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 1);
-            let score = 0;
-
-            const matchingWords = queryWords.filter(qw => titleWords.includes(qw)).length;
-            score += matchingWords * 10;
-
-            if (cleanTitle.includes(cleanQuery)) score += 5;
-
-            const distance = levenshteinDistance(cleanQuery, cleanTitle);
-            const maxLen = Math.max(cleanQuery.length, cleanTitle.length);
-            const similarity = 1 - (distance / maxLen);
-            score += similarity * 3;
-
-            if (score > bestMatch.score) {
-                bestMatch = { index: i, score };
-            }
-        }
-
-        return bestMatch.score >= 5 ? bestMatch.index : -1;
-    };
-
-    let songIndex = findSongIndex(songs, songName);
-
+    const songIndex = songs.findIndex(s => s.title.toLowerCase().includes(songName));
     if (songIndex !== -1) {
         currentSong = songIndex;
-        loadSong(currentSong).then(() => {
-            safePlay();
-            showToast(`Playing: ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Playing: ${songs[currentSong].title}`);
-        }).catch(err => {
-            console.error("Error playing song:", err);
-            showToast("Failed to play song");
-            if (isVoiceFeedbackEnabled) speak("Failed to play song");
-        });
+        loadSong(currentSong).then(() => safePlay());
     } else {
         showToast(`Song "${songName}" not found`);
         if (isVoiceFeedbackEnabled) speak(`Song "${songName}" not found`);
     }
 }
 
-// Debounce Utility (unchanged)
+// Debounce Utility
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -1540,7 +1391,7 @@ function debounce(func, wait) {
     };
 }
 
-// Keyboard Shortcuts (unchanged)
+// Keyboard Shortcuts
 document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
@@ -1587,7 +1438,7 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-// Prevent default touch gestures on mobile (unchanged)
+// Prevent default touch gestures on mobile
 document.addEventListener("touchstart", (e) => {
     if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });
@@ -1623,7 +1474,6 @@ window.addEventListener("load", () => {
 
     startVoiceActivation();
 
-    // Ensure visibility of key elements
     if (homePage) homePage.style.display = "block";
     if (player) player.style.display = "none";
 });
