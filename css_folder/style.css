@@ -1,6 +1,6 @@
 :root {
-    --bg-start: #00c6ff;
-    --bg-end: #0072ff;
+    --bg-start: #2E8B57; /* Sea green replacing #00c6ff */
+    --bg-end: #6A5ACD;   /* Slate blue/purple replacing #0072ff */
     --text-color: #fff;
     --player-bg-start: rgba(42, 42, 42, 0.95);
     --player-bg-end: rgba(0, 0, 0, 0.85);
@@ -21,7 +21,7 @@ body {
 }
 
 body:hover {
-    background: linear-gradient(to right, #00e6cc, var(--bg-end));
+    background: linear-gradient(to right, #3CB371, var(--bg-end)); /* Medium sea green replacing #00e6cc */
     box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.2);
 }
 
@@ -56,7 +56,6 @@ body.mini-player-active::before {
 #sidebar.active {
     transform: translateX(0);
 }
-
 
 #sidebar a,
 .sidebar-btn,
@@ -169,12 +168,12 @@ body.light-theme .toggle-switch-state {
     color: black;
 }
 
-#sidebar #home-link:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
-#sidebar #library-btn:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
-#sidebar #playlist-btn:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
-#sidebar #category-filter:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); }
-#sidebar .sleep-timer-container:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25px rgba(205, 6, 216, 0.8); } /* Matches #home-link */
-#sidebar #voice-cmd-toggle:hover { background: linear-gradient(45deg, #45b7d1, #67cbeb); box-shadow: 0 0 25pxrgba(205, 6, 216, 0.8); }
+#sidebar #home-link:hover { background: linear-gradient(45deg, #00e6cc, #FF69B4); box-shadow: 0 0 25px rgba(255, 105, 180, 0.8); }
+#sidebar #library-btn:hover { background: linear-gradient(45deg, #00e6cc, #FF69B4); box-shadow: 0 0 25px rgba(255, 105, 180, 0.8); }
+#sidebar #playlist-btn:hover { background: linear-gradient(45deg, #00e6cc, #FF69B4); box-shadow: 0 0 25px rgba(255, 105, 180, 0.8); }
+#sidebar #category-filter:hover { background: linear-gradient(45deg, #00e6cc, #FF69B4); box-shadow: 0 0 25px rgba(255, 105, 180, 0.8); }
+#sidebar .sleep-timer-container:hover { background: linear-gradient(45deg, #00e6cc, #FF69B4); box-shadow: 0 0 25px rgba(255, 105, 180, 0.8); }
+#sidebar #voice-cmd-toggle:hover { background: linear-gradient(45deg, #00e6cc, #FF69B4); box-shadow: 0 0 25px rgba(255, 105, 180, 0.8); }
 
 #sidebar a:hover,
 .sidebar-btn:hover,
@@ -198,7 +197,7 @@ body.light-theme .toggle-switch-state {
 }
 
 #close-sidebar:hover {
-    color: #00e6cc;
+    color: #FF69B4; /* Hot pink replacing #00e6cc */
     background: rgba(255, 255, 255, 0.1);
     transform: scale(1.1);
 }
@@ -206,7 +205,6 @@ body.light-theme .toggle-switch-state {
 #menu-btn {
     position: fixed;
     top: 3px;
-    /* left: 0px; */
     font-size: 25px;
     cursor: pointer;
     background: none;
@@ -217,7 +215,7 @@ body.light-theme .toggle-switch-state {
 
 #menu-btn:hover {
     transform: rotate(90deg);
-    color: #00e6cc;
+    color: #FF69B4; /* Hot pink replacing #00e6cc */
 }
 
 .sidebar-btn {
@@ -260,7 +258,7 @@ body.light-theme .toggle-switch-state {
 }
 
 #song-list::-webkit-scrollbar-thumb:hover {
-    background: #00c6ff;
+    background: #FF69B4; /* Hot pink replacing #00c6ff */
 }
 
 #song-list li {
@@ -319,7 +317,6 @@ body.light-theme .toggle-switch-state {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.1); }
 }
-
 
 .toggle-switch {
     display: flex;
@@ -394,8 +391,8 @@ body.light-theme .toggle-switch-state {
 }
 
 .toggle-switch:hover {
-    background: linear-gradient(45deg, #45b7d1, #67cbeb);
-    box-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
+    background: linear-gradient(45deg, #00e6cc, #FF69B4); /* Teal to hot pink */
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.8); /* Muted magenta */
 }
 
 .player {
@@ -406,7 +403,7 @@ body.light-theme .toggle-switch-state {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: 20px;
-    box-shadow: 0 0 20px rgba(0, 230, 204, 0.8), inset 0 0 10px rgba(0, 230, 204, 0.4);
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.8), inset 0 0 10px rgba(255, 105, 180, 0.4); /* Magenta */
     position: relative;
     top: -50px;
     transition: all 0.3s ease;
@@ -416,10 +413,9 @@ body.light-theme .toggle-switch-state {
 
 .mini-player {
     max-width: 400px;
-    /* height: 100px; */
     padding: 15px;
     border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0, 230, 204, 0.6), inset 0 0 5px rgba(0, 230, 204, 0.3);
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.6), inset 0 0 5px rgba(255, 105, 180, 0.3); /* Magenta */
     cursor: move;
     position: fixed;
     bottom: 20px;
@@ -427,48 +423,38 @@ body.light-theme .toggle-switch-state {
     transition: all 0.3s ease, left 0s, top 0s, bottom 0s, right 0s;
     z-index: 100;
     background: linear-gradient(135deg, var(--player-bg-start), var(--player-bg-end));
-
 }
 
 .mini-player.dragged {
-    border: 2px solid #00e6cc;
-    box-shadow: 0 0 10px rgba(0, 230, 204, 0.5);
+    border: 2px solid #FF69B4; /* Hot pink */
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.5); /* Magenta */
 }
+
 @media screen and (min-width: 320px) and (max-width: 767px) {
     .player {
         max-width: 75%;
         position: relative;
         top: 0;
-        bottom :0;  
-     
+        bottom: 0;
     }
 
-    /* Hide the mini-toggle button */
     #mini-toggle {
-        display: none; /* Removes the mini-toggle button */
+        display: none;
     }
 
-    /* Shortcut button styled like #like-btn, in place of #mini-toggle */
     #shortcut-btn {
         position: absolute;
-        left: 4%; /* Takes #mini-toggle's place */
+        left: 4%;
         top: 0%;
-        /* transform: translateY(-50%); */
         width: 40px;
         height: 40px;
-        /* margin: 0; */
         display: flex;
         justify-content: center;
         align-items: center;
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 50%;
-        /* No transition, matching #like-btn’s base state */
     }
-
-   
-
-   
 
     .song-info {
         position: relative;
@@ -478,16 +464,16 @@ body.light-theme .toggle-switch-state {
 
     #song-title {
         position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
+        left: calc(15% + 45px);
+        right: calc(5% + 45px);
         text-align: center;
         margin: 0;
-        font-size: clamp(12px, 3vw, 20px);
+        font-size: clamp(12px, 3vw, 18px);
         white-space: nowrap;
-        width: calc(100% - 30%);
-        max-width: calc(70% - 100px);
         top: 50%;
-        transform: translate(-50%, -50%);
+        transform: translateY(-50%);
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .song-info #voice-btn {
@@ -631,8 +617,10 @@ body.light-theme .toggle-switch-state {
         margin-top: 10px;
     }
 }
+
 .mini-player #album-cover,
-.mini-player .equalizer , .mini-player #voice-btn {
+.mini-player .equalizer,
+.mini-player #voice-btn {
     display: none;
 }
 
@@ -643,10 +631,11 @@ body.light-theme .toggle-switch-state {
     font-size: 12px;
     margin: 0;
 }
+
 .song-info #like-btn.liked {
-    transform: translateY(-50%) scale(1.1); /* Slightly larger when liked */
-    background-color: #f41a1a; /* Example: Red background to indicate "liked" */
-    color: #fff; /* White icon/text for contrast */
+    transform: translateY(-50%) scale(1.1);
+    background-color: #f41a1a;
+    color: #fff;
 }
 
 .mini-player #theme-toggle {
@@ -749,7 +738,7 @@ body.light-theme .toggle-switch-state {
     display: block;
     width: 80px;
     height: 5px;
-    visibility: hidden; 
+    visibility: hidden;
     display: none;
 }
 
@@ -776,14 +765,10 @@ body.light-theme .toggle-switch-state {
     color: var(--text-color);
     outline: none;
 }
-.mini-player #shortcut-btn{
+
+.mini-player #shortcut-btn {
     display: none;
 }
-/* 
-.mini-player .search-bar:focus {
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 0 5px rgba(0, 230, 204, 0.7);
-} */
 
 #album-cover {
     width: 80%;
@@ -877,7 +862,6 @@ body.light-theme .toggle-switch-state {
     transform: scale(1.1);
 }
 
-/* Base Styling */
 #like-btn {
     width: 40px;
     height: 40px;
@@ -895,33 +879,29 @@ body.light-theme .toggle-switch-state {
     align-items: center;
 }
 
-/* Hover State (General) */
 #like-btn:hover {
     background: rgba(0, 230, 204, 0.2);
     transform: scale(1.1);
 }
 
-/* Song Info Base State */
 .song-info #like-btn {
-    transform: scale(1); /* Remove translateY unless needed for centering */
+    transform: scale(1);
 }
 
-/* Active State (General) */
 .song-info #like-btn:active {
     transform: scale(1.2);
 }
 
-/* Liked State (General) */
 .song-info #like-btn.liked {
     transform: scale(1.1);
     background-color: #f41a1a;
     color: #fff;
 }
 
-/* Liked and Active State (General) */
 .song-info #like-btn.liked:active {
     transform: scale(1.3);
 }
+
 .controls {
     display: flex;
     justify-content: center;
@@ -1058,14 +1038,14 @@ body.light-theme .toggle-switch-state {
     margin: 15px 0;
 }
 
-#volume-icon { 
+#volume-icon {
     font-size: 22px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 #volume-icon:hover {
-    color: #00e6cc;
+    color: #FF69B4; /* Hot pink replacing #00e6cc */
     transform: scale(1.1);
 }
 
@@ -1082,7 +1062,7 @@ body.light-theme .toggle-switch-state {
 }
 
 #search-icon:hover {
-    color: #00e6cc;
+    color: #FF69B4; /* Hot pink replacing #00e6cc */
     transform: scale(1.1);
 }
 
@@ -1100,7 +1080,7 @@ body.light-theme .toggle-switch-state {
 
 .search-bar:focus {
     background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 0 10px rgba(0, 230, 204, 0.7);
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.7); /* Magenta */
 }
 
 .modal {
@@ -1139,7 +1119,7 @@ body.light-theme .toggle-switch-state {
     background: linear-gradient(135deg, var(--player-bg-start), var(--player-bg-end));
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 0 15px rgba(0, 230, 204, 0.6);
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.6); /* Magenta */
     text-align: left;
     max-width: 400px;
     width: 90%;
@@ -1195,7 +1175,7 @@ body.light-theme .toggle-switch-state {
 
 #shortcut-close:hover {
     transform: scale(1.1);
-    color: #00e6cc;
+    color: #FF69B4; /* Hot pink replacing #00e6cc */
 }
 
 .home-page {
@@ -1206,7 +1186,7 @@ body.light-theme .toggle-switch-state {
     background: linear-gradient(135deg, var(--player-bg-start), var(--player-bg-end));
     padding: 40px;
     border-radius: 20px;
-    box-shadow: 0 0 20px rgba(0, 230, 204, 0.8);
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.8); /* Magenta */
     z-index: 50;
     text-align: center;
     max-width: 500px;
@@ -1290,13 +1270,13 @@ body.light-theme .toggle-switch-state {
 }
 
 .playlist-link:hover {
-    color: #00c6ff;
+    color: #FF69B4; /* Hot pink replacing #00c6ff */
     text-decoration: underline;
 }
 
 .home-button {
     padding: 12px 24px;
-    background: rgba(0, 230, 204, 0.2);
+    background: rgba(255, 105, 180, 0.2); /* Magenta */
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     font-size: 16px;
@@ -1306,9 +1286,9 @@ body.light-theme .toggle-switch-state {
 }
 
 .home-button:hover {
-    background: rgba(0, 230, 204, 0.4);
+    background: rgba(255, 105, 180, 0.4); /* Magenta */
     transform: scale(1.05);
-    box-shadow: 0 0 10px rgba(0, 230, 204, 0.5);
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.5); /* Magenta */
 }
 
 .emblem {
@@ -1371,11 +1351,11 @@ body.light-theme .toggle-switch-state {
 }
 
 #seekbar::-webkit-slider-thumb:hover {
-    background: #00c6ff;
+    background: #FF69B4; /* Hot pink replacing #00c6ff */
 }
 
 #seekbar::-moz-range-thumb:hover {
-    background: #00c6ff;
+    background: #FF69B4; /* Hot pink replacing #00c6ff */
 }
 
 #volume {
@@ -1422,11 +1402,11 @@ body.light-theme .toggle-switch-state {
 }
 
 #volume::-webkit-slider-thumb:hover {
-    background: #00c6ff;
+    background: #FF69B4; /* Hot pink replacing #00c6ff */
 }
 
 #volume::-moz-range-thumb:hover {
-    background: #00c6ff;
+    background: #FF69B4; /* Hot pink replacing #00c6ff */
 }
 
 .controls-container {
@@ -1442,7 +1422,7 @@ body.light-theme .toggle-switch-state {
     gap: 8px;
     padding: 10px;
     font-size: 16px;
-    background-color: rgb(0, 183, 255); /* Matches #home-link */
+    background-color: rgb(0, 183, 255);
     border-radius: 8px;
     color: black;
     transition: color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
@@ -1451,8 +1431,8 @@ body.light-theme .toggle-switch-state {
 }
 
 .sleep-timer-container:hover {
-    background: linear-gradient(45deg, #45b7d1, #67cbeb); /* Matches #home-link hover */
-    box-shadow: 0 0 12px rgba(255, 107, 107, 0.8); /* Matches #home-link hover */
+    background: linear-gradient(45deg, #00e6cc, #FF69B4); /* Teal to hot pink */
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.8); /* Magenta */
     color: #fff;
     transform: translateX(5px) scale(1.02);
 }
@@ -1524,7 +1504,7 @@ body.light-theme .toggle-switch-state {
 
 .light-theme {
     --bg-start: #f0f0f0;
-    --bg-end: #d9e8ff;
+    --bg-end: #D8BFD8; /* Thistle (light purple) replacing #d9e8ff */
     --text-color: #333;
     --player-bg-start: rgba(255, 255, 255, 0.95);
     --player-bg-end: rgba(230, 230, 230, 0.85);
@@ -1549,15 +1529,15 @@ body.light-theme .toggle-switch-state {
 }
 
 .light-theme .player {
-    box-shadow: 0 0 20px rgba(0, 100, 255, 0.5), inset 0 0 10px rgba(0, 100, 255, 0.2);
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.5), inset 0 0 10px rgba(255, 105, 180, 0.2); /* Magenta */
 }
 
 .light-theme .mini-player {
-    box-shadow: 0 0 15px rgba(0, 100, 255, 0.4), inset 0 0 5px rgba(0, 100, 255, 0.1);
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.4), inset 0 0 5px rgba(255, 105, 180, 0.1); /* Magenta */
 }
 
 .light-theme .mini-player.dragged {
-    border: 2px solid #00c6ff;
+    border: 2px solid #FF69B4; /* Hot pink replacing #00c6ff */
 }
 
 .light-theme .search-bar {
@@ -1568,21 +1548,21 @@ body.light-theme .toggle-switch-state {
 
 .light-theme .search-bar:focus {
     background: rgba(0, 0, 0, 0.15);
-    box-shadow: 0 0 10px rgba(0, 100, 255, 0.5);
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.5); /* Magenta */
 }
 
 .light-theme .home-page {
-    box-shadow: 0 0 20px rgba(0, 100, 255, 0.5);
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.5); /* Magenta */
 }
 
 .light-theme .home-button {
-    background: rgba(0, 100, 255, 0.2);
+    background: rgba(255, 105, 180, 0.2); /* Magenta */
     border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 .light-theme .home-button:hover {
-    background: rgba(0, 100, 255, 0.4);
-    box-shadow: 0 0 10px rgba(0, 100, 255, 0.5);
+    background: rgba(255, 105, 180, 0.4); /* Magenta */
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.5); /* Magenta */
 }
 
 @media screen and (max-width: 480px) {

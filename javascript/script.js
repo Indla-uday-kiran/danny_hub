@@ -11,6 +11,7 @@ const songTitle = document.getElementById("song-title");
 const albumCover = document.getElementById("album-cover");
 const miniCover = document.getElementById("mini-cover");
 const sidebar = document.getElementById("sidebar");
+const sidebarLinks = document.querySelectorAll('#sidebar a, .sidebar-btn, #voice-cmd-toggle, #category-filter, .sleep-timer-container');
 const menuBtn = document.getElementById("menu-btn");
 const closeSidebar = document.getElementById("close-sidebar");
 const randomBtn = document.getElementById("random-btn");
@@ -46,6 +47,10 @@ const toastSong = document.getElementById("toast-song");
 const voiceBtn = document.getElementById("voice-btn");
 const voiceCmdToggle = document.getElementById("voice-cmd-toggle");
 const resetPositionBtn = document.getElementById("reset-position");
+
+function removeActiveState() {
+    sidebarLinks.forEach(link => link.classList.remove('active'));
+}
 
 // Album Color Map (unchanged)
 const albumColorMap = {
@@ -225,6 +230,7 @@ let toastTimeout = null;
 let sleepTimerInterval = null;
 let remainingSeconds = 0;
 let isSleepTimerPaused = false;
+let playbackSpeed = 1.0;
 let isMiniPlayer = false;
 let isDragging = false;
 let currentX = 0, currentY = 0, initialX = 0, initialY = 0;
@@ -266,6 +272,19 @@ function formatTime(seconds) {
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs < 10 ? "0" + secs : secs}`;
 }
+// Line ~300 (after formatTime)
+function safePlay() {
+    audio.play().then(() => {
+        updatePlayPauseUI(true);
+    }).catch(e => {
+        console.error("Playback blocked:", e);
+        showToast("Tap to resume playback");
+        document.addEventListener("touchstart", function resume() {
+            audio.play().then(() => updatePlayPauseUI(true));
+            document.removeEventListener("touchstart", resume);
+        }, { once: true });
+    });
+}
 
 function startSleepTimer(minutes) {
     if (sleepTimerInterval) clearInterval(sleepTimerInterval);
@@ -305,24 +324,20 @@ function loadLikedSongs() {
     }
 }
 
+
+// Line ~350 (replace existing loadSong)
 async function loadSong(index) {
     if (index < 0 || index >= songs.length || isLoading) return Promise.reject("Invalid index or loading");
-    if (songs.length <= 1 && skipCount >= maxSkips) {
-        showToast("No playable songs available");
-        return Promise.reject("No playable songs");
-    }
     isLoading = true;
-
     try {
         const response = await fetch(songs[index].file, { method: "HEAD" });
-        if (!response.ok) throw new Error("File not found or unavailable");
+        if (!response.ok) throw new Error("File not found");
 
         currentSong = index;
-        audio.src = songs[currentSong].file;
-        songTitle.textContent = songs[currentSong].title;
-
+        audio.src = songs[index].file; // Fixed: Removed "PRIME"
+        songTitle.textContent = songs[index].title;
         const albumImg = new Image();
-        albumImg.src = songs[currentSong].cover || "images/default-cover.jpg";
+        albumImg.src = songs[index].cover || "images/default-cover.jpg";
         albumImg.onload = () => {
             albumCover.src = albumImg.src;
             miniCover.src = albumImg.src;
@@ -331,11 +346,10 @@ async function loadSong(index) {
             albumCover.src = "images/default-cover.jpg";
             miniCover.src = "images/default-cover.jpg";
         };
-
         seekBar.value = 0;
         document.documentElement.style.setProperty("--progress", "0%");
-        likeBtn.textContent = songs[currentSong].liked ? "♥" : "♡";
-        likeBtn.classList.toggle("liked", songs[currentSong].liked);
+        likeBtn.textContent = songs[index].liked ? "♥" : "♡";
+        likeBtn.classList.toggle("liked", songs[index].liked);
         songTitle.style.animation = "fadeIn 0.3s";
         currentTimeDisplay.textContent = "0:00";
 
@@ -343,11 +357,13 @@ async function loadSong(index) {
             audio.onloadedmetadata = () => {
                 durationDisplay.textContent = formatTime(audio.duration);
                 seekBar.max = audio.duration;
+                audio.playbackRate = playbackSpeed; // Apply persisted speed
                 initializePlayer();
                 updatePlaylistHighlight();
-                const colors = albumColorMap[songs[currentSong].cover] || ["#00c6ff", "#0072ff"];
+                const colors = albumColorMap[songs[index].cover] || ["#00c6ff", "#0072ff"];
                 document.documentElement.style.setProperty("--bg-start", colors[0]);
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
+                skipCount = 0;
                 resolve();
             };
             audio.onerror = () => reject(new Error("Audio metadata error"));
@@ -357,16 +373,17 @@ async function loadSong(index) {
         showToast(`Error loading "${songs[index].title}". Skipping...`);
         if (songs.length > 1 && skipCount < maxSkips) {
             skipCount++;
-            nextBtn.click();
+            const nextIndex = (index + 1) % songs.length;
+            return loadSong(nextIndex);
         } else {
-            showToast("All songs failed to load. Please check your files.");
+            showToast("All songs failed to load.");
+            updatePlayPauseUI(false);
+            return Promise.reject(error);
         }
-        return Promise.reject(error);
     } finally {
         isLoading = false;
     }
 }
-
 function initializePlayer() {
     if (!playBtn || !pauseBtn || !equalizer || !albumCover) return;
     playBtn.style.display = "inline";
@@ -739,65 +756,47 @@ audio?.addEventListener("timeupdate", () => {
     document.documentElement.style.setProperty("--progress", `${progress}%`);
 });
 
+// Line ~1100 (replace existing audio.ended listener)
 audio?.addEventListener("ended", () => {
+    console.log("Song ended:", { currentSong, repeatMode, songsLength: songs.length });
+    if (songs.length === 0) {
+        showToast("No songs available");
+        updatePlayPauseUI(false);
+        return;
+    }
     if (repeatMode === 1) {
         audio.currentTime = 0;
-        audio.play().then(() => {
-            updatePlayPauseUI(true);
-            showToast(`Repeating: ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Repeating ${songs[currentSong].title}`);
-        }).catch(e => {
-            console.error("Play error:", e);
-            showToast("Playback error. Please interact with the page.");
+        safePlay();
+        showToast(`Repeating: ${songs[currentSong].title}`);
+        if (isVoiceFeedbackEnabled) speak(`Repeating ${songs[currentSong].title}`);
+    } else if (repeatMode === 2) {
+        currentSong = (currentSong + 1) % songs.length;
+        loadSong(currentSong).then(() => {
+            safePlay();
+            showToast(`Now Playing: ${songs[currentSong].title}`);
+            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
         });
     } else if (queue.length > 0) {
         const nextSong = queue.shift();
         const index = songs.findIndex(song => song.title === nextSong.title);
         loadSong(index).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now playing from queue: ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
+            safePlay();
+            showToast(`Now playing from queue: ${songs[currentSong].title}`);
+            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
         });
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
         loadSong(currentSong).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now playing (random): ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
+            safePlay();
+            showToast(`Now playing (random): ${songs[currentSong].title}`);
+            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
         });
     } else if ((currentSong + 1) < songs.length) {
         currentSong++;
         loadSong(currentSong).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now Playing: ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
-        });
-    } else if (repeatMode === 2) {
-        currentSong = 0;
-        loadSong(currentSong).then(() => {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                showToast(`Now Playing: ${songs[currentSong].title}`);
-                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-            }).catch(e => {
-                console.error("Play error:", e);
-                showToast("Playback error. Please interact with the page.");
-            });
+            safePlay();
+            showToast(`Now Playing: ${songs[currentSong].title}`);
+            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
         });
     } else {
         updatePlayPauseUI(false);
@@ -910,7 +909,8 @@ searchInput?.addEventListener("input", debounce(() => {
 }, 300));
 
 speedControl?.addEventListener("change", () => {
-    audio.playbackRate = parseFloat(speedControl.value);
+    playbackSpeed = parseFloat(speedControl.value);
+    audio.playbackRate = playbackSpeed;
     showToast(`Speed set to ${speedControl.value}x`);
     if (isVoiceFeedbackEnabled) speak(`Speed set to ${speedControl.value}x`);
 });
@@ -2087,6 +2087,12 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
     }
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            removeActiveState(); // Remove active from all
+            link.classList.add('active'); // Add active to clicked link
+        });
+    });
 
     loadLikedSongs();
     populatePlaylist();
