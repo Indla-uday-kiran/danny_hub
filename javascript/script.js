@@ -179,38 +179,13 @@ if ('serviceWorker' in navigator) {
                             type: 'UPDATE_CACHE',
                             assets: assetsToCache
                         });
-                    } else {
-                        console.warn('No active Service Worker found after registration');
                     }
                 });
             })
             .catch(error => {
                 console.error('Service Worker registration failed:', error);
-                let errorMessage = 'Service Worker registration failed';
-                if (error.name === 'SecurityError') {
-                    errorMessage += ': Must be served over HTTPS or localhost';
-                } else if (error.message.includes('404')) {
-                    errorMessage += ': service-worker.js not found';
-                } else {
-                    errorMessage += `: ${error.message}`;
-                }
-                showToast(errorMessage);
+                showToast(`Service Worker registration failed: ${error.message}`);
             });
-
-        navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data) {
-                switch (event.data.type) {
-                    case 'CACHE_UPDATED':
-                        showToast(`Cached ${event.data.assetsCached} assets for offline use!`);
-                        break;
-                    case 'CACHE_INSTALL_FAILED':
-                    case 'CACHE_UPDATE_FAILED':
-                        showToast(`Caching failed: ${event.data.error}`);
-                        console.error('Caching failed:', event.data.error);
-                        break;
-                }
-            }
-        });
     });
 }
 
@@ -276,11 +251,19 @@ function formatTime(seconds) {
 function safePlay() {
     audio.play().then(() => {
         updatePlayPauseUI(true);
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+        }
     }).catch(e => {
         console.error("Playback blocked:", e);
         showToast("Tap to resume playback");
         document.addEventListener("touchstart", function resume() {
-            audio.play().then(() => updatePlayPauseUI(true));
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = "playing";
+                }
+            });
             document.removeEventListener("touchstart", resume);
         }, { once: true });
     });
@@ -334,18 +317,24 @@ async function loadSong(index) {
         if (!response.ok) throw new Error("File not found");
 
         currentSong = index;
-        audio.src = songs[index].file; // Fixed: Removed "PRIME"
+        audio.src = songs[index].file;
         songTitle.textContent = songs[index].title;
-        const albumImg = new Image();
-        albumImg.src = songs[index].cover || "images/default-cover.jpg";
-        albumImg.onload = () => {
-            albumCover.src = albumImg.src;
-            miniCover.src = albumImg.src;
-        };
-        albumImg.onerror = () => {
+
+        // Set album cover directly with fallback
+        const coverSrc = songs[index].cover || "images/default-cover.jpg";
+        albumCover.src = coverSrc;
+        miniCover.src = coverSrc;
+        console.log("Setting album cover to:", coverSrc);
+
+        // Handle image loading errors
+        albumCover.onerror = () => {
+            console.error("Failed to load cover:", coverSrc);
             albumCover.src = "images/default-cover.jpg";
+        };
+        miniCover.onerror = () => {
             miniCover.src = "images/default-cover.jpg";
         };
+
         seekBar.value = 0;
         document.documentElement.style.setProperty("--progress", "0%");
         likeBtn.textContent = songs[index].liked ? "♥" : "♡";
@@ -357,7 +346,7 @@ async function loadSong(index) {
             audio.onloadedmetadata = () => {
                 durationDisplay.textContent = formatTime(audio.duration);
                 seekBar.max = audio.duration;
-                audio.playbackRate = playbackSpeed; // Apply persisted speed
+                audio.playbackRate = playbackSpeed;
                 initializePlayer();
                 updatePlaylistHighlight();
                 const colors = albumColorMap[songs[index].cover] || ["#00c6ff", "#0072ff"];
@@ -759,49 +748,50 @@ audio?.addEventListener("timeupdate", () => {
 // Line ~1100 (replace existing audio.ended listener)
 audio?.addEventListener("ended", () => {
     console.log("Song ended:", { currentSong, repeatMode, songsLength: songs.length });
+
     if (songs.length === 0) {
         showToast("No songs available");
         updatePlayPauseUI(false);
         return;
     }
+
+    // Helper function to play next song
+    const playNext = () => {
+        loadSong(currentSong).then(() => {
+            safePlay();
+            showToast(`Now Playing: ${songs[currentSong].title}`);
+            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
+        }).catch(e => {
+            console.error("Next song load error:", e);
+            showToast("Error loading next song");
+        });
+    };
+
     if (repeatMode === 1) {
         audio.currentTime = 0;
         safePlay();
-        showToast(`Repeating: ${songs[currentSong].title}`);
-        if (isVoiceFeedbackEnabled) speak(`Repeating ${songs[currentSong].title}`);
     } else if (repeatMode === 2) {
         currentSong = (currentSong + 1) % songs.length;
-        loadSong(currentSong).then(() => {
-            safePlay();
-            showToast(`Now Playing: ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-        });
+        playNext();
     } else if (queue.length > 0) {
         const nextSong = queue.shift();
-        const index = songs.findIndex(song => song.title === nextSong.title);
-        loadSong(index).then(() => {
-            safePlay();
-            showToast(`Now playing from queue: ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-        });
+        currentSong = songs.findIndex(song => song.title === nextSong.title);
+        playNext();
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
-        loadSong(currentSong).then(() => {
-            safePlay();
-            showToast(`Now playing (random): ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-        });
+        playNext();
     } else if ((currentSong + 1) < songs.length) {
         currentSong++;
-        loadSong(currentSong).then(() => {
-            safePlay();
-            showToast(`Now Playing: ${songs[currentSong].title}`);
-            if (isVoiceFeedbackEnabled) speak(`Playing ${songs[currentSong].title}`);
-        });
+        playNext();
     } else {
         updatePlayPauseUI(false);
         showToast("Playlist ended");
         if (isVoiceFeedbackEnabled) speak("Playlist ended");
+    }
+
+    // Update Media Session state
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = audio.paused ? "paused" : "playing";
     }
 });
 
