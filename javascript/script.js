@@ -235,26 +235,34 @@ function formatTime(seconds) {
     return `${minutes}:${secs < 10 ? "0" + secs : secs}`;
 }
 
+// Enhanced safePlay with better error handling and logging
 function safePlay() {
-    audio.play().then(() => {
-        updatePlayPauseUI(true);
-        if ("mediaSession" in navigator) {
-            navigator.mediaSession.playbackState = "playing";
-        }
-        console.log("Playback started:", songs[currentSong].title);
-    }).catch(e => {
-        console.error("Playback blocked:", e);
-        showToast("Tap to resume playback");
-        document.addEventListener("touchstart", function resume() {
-            audio.play().then(() => {
-                updatePlayPauseUI(true);
-                if ("mediaSession" in navigator) {
-                    navigator.mediaSession.playbackState = "playing";
-                }
-            });
-            document.removeEventListener("touchstart", resume);
-        }, { once: true });
-    });
+    console.log("Attempting to play:", songs[currentSong]?.title, { paused: audio.paused, src: audio.src });
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            updatePlayPauseUI(true);
+            if ("mediaSession" in navigator) {
+                navigator.mediaSession.playbackState = "playing";
+            }
+            console.log("Playback successful:", songs[currentSong].title);
+        }).catch(e => {
+            console.error("Playback failed:", e);
+            showToast("Playback error. Tap to retry.");
+            updatePlayPauseUI(false);
+            // Retry on user interaction
+            document.addEventListener("click", function retry() {
+                audio.play().then(() => {
+                    updatePlayPauseUI(true);
+                    if ("mediaSession" in navigator) {
+                        navigator.mediaSession.playbackState = "playing";
+                    }
+                    console.log("Retry successful:", songs[currentSong].title);
+                }).catch(err => console.error("Retry failed:", err));
+                document.removeEventListener("click", retry);
+            }, { once: true });
+        });
+    }
 }
 
 function startSleepTimer(minutes) {
@@ -299,14 +307,16 @@ async function loadSong(index) {
     if (index < 0 || index >= songs.length || isLoading) return Promise.reject("Invalid index or loading");
     isLoading = true;
     try {
-        const response = await fetch(songs[index].file, { method: "HEAD" });
+        const song = songs[index];
+        console.log("Loading song:", song.title);
+        const response = await fetch(song.file, { method: "HEAD" });
         if (!response.ok) throw new Error("File not found");
 
         currentSong = index;
-        audio.src = songs[index].file;
-        songTitle.textContent = songs[index].title;
+        audio.src = song.file;
+        songTitle.textContent = song.title;
 
-        const coverSrc = songs[index].cover || "images/default-cover.jpg";
+        const coverSrc = song.cover || "images/default-cover.jpg";
         albumCover.src = coverSrc;
         miniCover.src = coverSrc;
         albumCover.onerror = () => albumCover.src = "images/default-cover.jpg";
@@ -314,15 +324,17 @@ async function loadSong(index) {
 
         if ("mediaSession" in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: songs[index].title,
+                title: song.title,
                 artist: "Unknown Artist",
                 album: "Danny Hub Playlist",
                 artwork: [{ src: coverSrc, sizes: "500x500", type: "image/jpeg" }]
             });
+            // Ensure action handlers are set every load
             navigator.mediaSession.setActionHandler("play", () => safePlay());
             navigator.mediaSession.setActionHandler("pause", () => {
                 audio.pause();
                 updatePlayPauseUI(false);
+                console.log("Paused via media session");
             });
             navigator.mediaSession.setActionHandler("nexttrack", () => nextBtn.click());
             navigator.mediaSession.setActionHandler("previoustrack", () => prevBtn.click());
@@ -330,9 +342,8 @@ async function loadSong(index) {
 
         seekBar.value = 0;
         document.documentElement.style.setProperty("--progress", "0%");
-        likeBtn.textContent = songs[index].liked ? "♥" : "♡";
-        likeBtn.classList.toggle("liked", songs[index].liked);
-        songTitle.style.animation = "fadeIn 0.3s";
+        likeBtn.textContent = song.liked ? "♥" : "♡";
+        likeBtn.classList.toggle("liked", song.liked);
         currentTimeDisplay.textContent = "0:00";
 
         return new Promise((resolve, reject) => {
@@ -342,21 +353,16 @@ async function loadSong(index) {
                 audio.playbackRate = playbackSpeed;
                 initializePlayer();
                 updatePlaylistHighlight();
-                const colors = albumColorMap[songs[index].cover] || ["#00c6ff", "#0072ff"];
+                const colors = albumColorMap[song.cover] || ["#00c6ff", "#0072ff"];
                 document.documentElement.style.setProperty("--bg-start", colors[0]);
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
                 skipCount = 0;
-
-                const nextIndex = repeatMode === 1 ? index : (index + 1) % songs.length;
-                if (nextIndex !== index && nextIndex < songs.length) {
-                    const nextAudio = new Audio(songs[nextIndex].file);
-                    nextAudio.preload = "metadata";
-                    nextAudio.onloadedmetadata = () => console.log("Preloaded metadata:", songs[nextIndex].title);
-                }
-
                 resolve();
             };
-            audio.onerror = () => reject(new Error("Audio metadata error"));
+            audio.onerror = () => {
+                console.error("Metadata load error:", song.title);
+                reject(new Error("Audio metadata error"));
+            };
         });
     } catch (error) {
         console.error(`Error loading song: ${songs[index].title}`, error);
@@ -392,6 +398,7 @@ function updatePlayPauseUI(isPlaying) {
     pauseBtn.style.display = isPlaying ? "inline" : "none";
     equalizer.style.display = isPlaying ? "flex" : "none";
     albumCover.classList.toggle("playing", isPlaying);
+    console.log("UI updated:", { isPlaying });
 }
 
 function populatePlaylist() {
@@ -706,28 +713,22 @@ audio?.addEventListener("ended", () => {
     }
 
     if (repeatMode === 1) {
-        console.log("Repeat One: Replaying current song");
         audio.currentTime = 0;
         safePlay();
     } else if (repeatMode === 2) {
         currentSong = (currentSong + 1) % songs.length;
-        console.log("Repeat All: Moving to next song, index:", currentSong);
         loadSong(currentSong).then(() => safePlay());
     } else if (queue.length > 0) {
         const nextSong = queue.shift();
         currentSong = songs.findIndex(song => song.title === nextSong.title);
-        console.log("Queue: Playing next queued song, index:", currentSong);
         loadSong(currentSong).then(() => safePlay());
     } else if (isRandomMode) {
         currentSong = Math.floor(Math.random() * songs.length);
-        console.log("Random: Selected random song, index:", currentSong);
         loadSong(currentSong).then(() => safePlay());
     } else if ((currentSong + 1) < songs.length) {
         currentSong++;
-        console.log("No Repeat: Advancing to next song, index:", currentSong);
         loadSong(currentSong).then(() => safePlay());
     } else {
-        console.log("End of playlist reached");
         updatePlayPauseUI(false);
         showToast("Playlist ended");
         if (isVoiceFeedbackEnabled) speak("Playlist ended");
@@ -1454,6 +1455,8 @@ window.addEventListener("load", () => {
                 updatePlayPauseUI(false);
                 isFirstLoad = false;
             }
+            // Auto-play on load to test screen-on behavior
+            safePlay();
         }).catch(err => console.error("Initial load failed:", err));
     } else {
         showToast("No songs available");
@@ -1473,20 +1476,27 @@ window.addEventListener("load", () => {
     }
 
     startVoiceActivation();
-
     if (homePage) homePage.style.display = "block";
     if (player) player.style.display = "none";
 });
 
-// Handle visibility changes for background playback
+// Handle visibility changes with explicit state management
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden" && !audio.paused) {
-        console.log("Page hidden, ensuring playback continues...");
-        if ("mediaSession" in navigator) {
+    if (document.visibilityState === "hidden") {
+        console.log("Page hidden, audio state:", { paused: audio.paused });
+        if (!audio.paused && "mediaSession" in navigator) {
             navigator.mediaSession.playbackState = "playing";
         }
-    } else if (document.visibilityState === "visible" && !audio.paused) {
-        updatePlayPauseUI(true);
+    } else if (document.visibilityState === "visible") {
+        console.log("Page visible, audio state:", { paused: audio.paused });
+        if (!audio.paused) {
+            updatePlayPauseUI(true);
+            // Ensure playback continues when screen is on
+            if (audio.paused) {
+                console.log("Audio paused unexpectedly, resuming...");
+                safePlay();
+            }
+        }
     }
 });
 
