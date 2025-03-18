@@ -1,4 +1,4 @@
-// DOM Elements (unchanged)
+// DOM Elements
 const audio = document.getElementById("audio");
 const playBtn = document.getElementById("play");
 const pauseBtn = document.getElementById("pause");
@@ -48,7 +48,7 @@ const voiceBtn = document.getElementById("voice-btn");
 const voiceCmdToggle = document.getElementById("voice-cmd-toggle");
 const resetPositionBtn = document.getElementById("reset-position");
 
-// Album Color Map (unchanged)
+// Album Color Map
 const albumColorMap = {
     "images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg": ["#ff6f61", "#ff9b71"],
     "images/Fear-Song-From-Devara-Part-1-Telugu-Telugu-2024-20240519131003-500x500.jpg": ["#4a90e2", "#50e3c2"],
@@ -98,7 +98,7 @@ const albumColorMap = {
     "images/Ala-Vaikunthapurramuloo-Telugu-2019-20191026161003-500x500.jpg": ["#ff4500", "#ff8c00"]
 };
 
-// State Variables (unchanged except for clarification)
+// State Variables
 let originalSongs = [
     { title: "Chuttamalle", file: "songs/[iSongs.info] 03 - Chuttamalle.mp3", cover: "images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg", liked: false, category: "Pop" },
     { title: "Fear song", file: "songs/[iSongs.info] 02 - Fear Song.mp3", cover: "images/Fear-Song-From-Devara-Part-1-Telugu-Telugu-2024-20240519131003-500x500.jpg", liked: false, category: "Rock" },
@@ -151,7 +151,6 @@ let originalSongs = [
     { title: "Baby Won't You Tell Me", file: "songs/[iSongs.info] 04 - Baby Won't You Tell Me.mp3", cover: "images/baby wont.jpg", liked: false, category: "Pop" },
     { title: "My Love Is Gone", file: "songs/[iSongs.info] 06 - My Love Is Gone.mp3", cover: "images/Aarya-2-Telugu-2009-20190822135933-500x500.jpg", liked: false, category: "Pop" },
     { title: "Ney Ready", file: "songs/[iSongs.info] 06 - Ney Ready.mp3", cover: "images/naready.jpg", liked: false, category: "Rock" },
-    // Uncommented for completeness
     { title: "Srivalli", file: "songs/[iSongs.info] 02 - Srivalli.mp3", cover: "images/Srivalli-From-Pushpa-The-Rise-Telugu-2021-20211013161003-500x500.jpg", liked: false, category: "Pop" },
     { title: "Saami Saami", file: "songs/[iSongs.info] 03 - Saami Saami.mp3", cover: "images/Saami-Saami-From-Pushpa-The-Rise-Telugu-2021-20211028161003-500x500.jpg", liked: false, category: "Dance" },
     { title: "Naatu Naatu", file: "songs/[iSongs.info] 01 - Naatu Naatu.mp3", cover: "images/Naatu-Naatu-From-RRR-Telugu-2021-20211110161003-500x500.jpg", liked: false, category: "Dance" },
@@ -159,7 +158,7 @@ let originalSongs = [
     { title: "Ramuloo Ramulaa", file: "songs/[iSongs.info] 05 - Ramuloo Ramulaa.mp3", cover: "images/Ala-Vaikunthapurramuloo-Telugu-2019-20191026161003-500x500.jpg", liked: false, category: "Dance" }
 ];
 
-// Service Worker Registration (unchanged)
+// Service Worker Registration
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("/service-worker.js", { scope: "/" })
@@ -206,9 +205,9 @@ let currentX = 0, currentY = 0, initialX = 0, initialY = 0;
 let hasBeenDragged = false;
 const defaultMiniPosition = { bottom: "20px", right: "20px", left: "auto", top: "auto" };
 let originalPosition = { ...defaultMiniPosition };
-let wakeRecognition = null; // To manage the wake word recognition instance
+let wakeRecognition = null;
 
-// Utility Functions (unchanged)
+// Utility Functions
 function showToast(message) {
     if (!toast || !toastSong) return;
     if (toastTimeout) clearTimeout(toastTimeout);
@@ -242,7 +241,6 @@ function formatTime(seconds) {
     return `${minutes}:${secs < 10 ? "0" + secs : secs}`;
 }
 
-// Enhanced safePlay for Lock Screen
 function safePlay() {
     console.log("safePlay called for:", songs[currentSong].title);
     const playPromise = audio.play();
@@ -320,16 +318,20 @@ async function loadSong(index) {
         songTitle.textContent = songs[index].title;
 
         const coverSrc = songs[index].cover || "images/default-cover.jpg";
-        albumCover.src = coverSrc;
-        miniCover.src = coverSrc;
-        albumCover.onerror = () => {
-            albumCover.src = "images/default-cover.jpg";
-        };
-        miniCover.onerror = () => {
-            miniCover.src = "images/default-cover.jpg";
-        };
+        // Update and show only the appropriate cover based on player state
+        if (!isMiniPlayer) {
+            albumCover.src = coverSrc;
+            albumCover.style.display = "block";
+            miniCover.style.display = "none";
+        } else {
+            miniCover.src = coverSrc;
+            miniCover.style.display = "inline-block";
+            albumCover.style.display = "none";
+        }
+        albumCover.onerror = () => { albumCover.src = "images/default-cover.jpg"; };
+        miniCover.onerror = () => { miniCover.src = "images/default-cover.jpg"; };
 
-        // Enhanced Media Session for Lock Screen
+        // Media Session for Lock Screen
         if ("mediaSession" in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: songs[index].title,
@@ -373,7 +375,7 @@ async function loadSong(index) {
                 document.documentElement.style.setProperty("--bg-end", colors[1]);
                 skipCount = 0;
 
-                // Preload next song for seamless transition
+                // Preload next song
                 const nextIndex = repeatMode === 1 ? index : (index + 1) % songs.length;
                 if (nextIndex !== index && nextIndex < songs.length) {
                     const nextAudio = new Audio(songs[nextIndex].file);
@@ -479,7 +481,7 @@ function setActiveSidebarButton(button) {
     activeSidebarBtn = button;
 }
 
-// Voice Activation Functions (unchanged)
+// Voice Activation Functions
 function startVoiceActivation() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -613,7 +615,7 @@ function listenForCommand() {
     }
 }
 
-// Event Listeners (unchanged with slight enhancements)
+// Event Listeners
 menuBtn?.addEventListener("click", () => {
     if (sidebar) sidebar.style.transform = "translateX(0)";
     if (closeSidebar) closeSidebar.style.display = "block";
@@ -844,6 +846,7 @@ miniToggle?.addEventListener("click", () => {
     player.classList.toggle("mini-player", isMiniPlayer);
     miniToggle.textContent = isMiniPlayer ? "⬆" : "⬇";
     miniCover.style.display = isMiniPlayer ? "inline-block" : "none";
+    albumCover.style.display = isMiniPlayer ? "none" : "block";
     resetPositionBtn.style.display = isMiniPlayer ? "inline-block" : "none";
     document.body.classList.toggle("mini-player-active", isMiniPlayer);
 
@@ -865,8 +868,10 @@ miniToggle?.addEventListener("click", () => {
         hasBeenDragged = false;
     }
 
-    showToast(isMiniPlayer ? "Mini Player On" : "Mini Player Off");
-    if (isVoiceFeedbackEnabled) speak(isMiniPlayer ? "Mini Player On" : "Mini Player Off");
+    loadSong(currentSong).then(() => {
+        showToast(isMiniPlayer ? "Mini Player On" : "Mini Player Off");
+        if (isVoiceFeedbackEnabled) speak(isMiniPlayer ? "Mini Player On" : "Mini Player Off");
+    });
 });
 
 player?.addEventListener("mousedown", startDragging);
@@ -1047,6 +1052,9 @@ voiceBtn?.addEventListener("click", () => {
     }
 });
 
+// ... (Previous code remains unchanged up to the handleVoiceCommand function)
+
+// Enhanced Voice Command Handler
 function handleVoiceCommand(command) {
     if (!command.toLowerCase().startsWith("danny")) {
         const utterance = speak("Please start with 'Danny'", true);
@@ -1097,7 +1105,7 @@ function handleVoiceCommand(command) {
 
     let matchedKey = null;
     for (const [key, keywords] of Object.entries(commands)) {
-        if (keywords.some(kw => action === kw || action.includes(kw))) {
+        if (keywords.some(kw => action === kw || action.startsWith(kw + " "))) {
             matchedKey = key;
             break;
         }
@@ -1111,16 +1119,12 @@ function handleVoiceCommand(command) {
 
         switch (matchedKey) {
             case "play":
-                if (action.includes("song")) {
-                    const songName = action.replace(/play|song/i, "").trim();
-                    const songIndex = songs.findIndex(s => s.title.toLowerCase().includes(songName));
-                    if (songIndex !== -1) {
-                        loadSong(songIndex).then(() => safePlay());
-                    } else {
-                        respond("Song not found");
-                    }
+                // Check if the command includes a song name or just a general "play" command
+                if (action.split(" ").length > 1) {
+                    handlePlaySongCommand(action);
                 } else {
                     playBtn?.click();
+                    respond("Playing");
                 }
                 break;
             case "pause":
@@ -1335,7 +1339,155 @@ function handleVoiceCommand(command) {
     }
 }
 
-// Keydown Listener (unchanged)
+// New function to handle "play song" voice commands with fuzzy matching
+function handlePlaySongCommand(action) {
+    // Extract song name by removing common keywords
+    const keywordsToRemove = ["danny", "play", "song", "the", "now", "please"];
+    let songName = action.toLowerCase().trim();
+    if (!songName) {
+        showToast("Please specify a song name");
+        if (isVoiceFeedbackEnabled) speak("Please specify a song name");
+        return;
+    }
+
+    keywordsToRemove.forEach(keyword => {
+        songName = songName.replace(new RegExp(`\\b${keyword}\\b`, "gi"), "").trim();
+    });
+
+    // Simple Levenshtein distance function for typo tolerance
+    const levenshteinDistance = (a, b) => {
+        const dp = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
+        for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+        for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+        for (let i = 1; i <= a.length; i++) {
+            for (let j = 1; j <= b.length; j++) {
+                const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1, // deletion
+                    dp[i][j - 1] + 1, // insertion
+                    dp[i - 1][j - 1] + indicator // substitution
+                );
+            }
+        }
+        return dp[a.length][b.length];
+    };
+
+    // Enhanced flexible matching function with scoring
+    const findSongIndex = (songList, query) => {
+        if (!songList.length) return -1;
+
+        const cleanQuery = query.replace(/[^a-z0-9\s]/g, "").trim();
+        if (!cleanQuery) return -1;
+
+        const queryWords = cleanQuery.split(/\s+/).filter(w => w.length > 1);
+
+        let bestMatch = { index: -1, score: -1 };
+        const titleCache = new Map(); // Cache cleaned titles
+
+        for (let i = 0; i < songList.length; i++) {
+            const song = songList[i];
+            const titleLower = song.title.toLowerCase();
+            let cleanTitle = titleCache.get(titleLower);
+            if (!cleanTitle) {
+                cleanTitle = titleLower.replace(/[^a-z0-9\s]/g, "");
+                titleCache.set(titleLower, cleanTitle);
+            }
+
+            // Quick exact match check
+            if (cleanTitle === cleanQuery) return i;
+
+            const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 1);
+            let score = 0;
+
+            // Word overlap score
+            const matchingWords = queryWords.filter(qw => titleWords.includes(qw)).length;
+            score += matchingWords * 10; // High weight for word matches
+
+            // Containment bonus
+            if (cleanTitle.includes(cleanQuery)) score += 5;
+
+            // Levenshtein distance for typo tolerance (normalized)
+            const distance = levenshteinDistance(cleanQuery, cleanTitle);
+            const maxLen = Math.max(cleanQuery.length, cleanTitle.length);
+            const similarity = 1 - (distance / maxLen);
+            score += similarity * 3; // Lower weight for similarity
+
+            if (score > bestMatch.score) {
+                bestMatch = { index: i, score };
+            }
+        }
+
+        // Threshold to consider a match valid (adjustable)
+        return bestMatch.score >= 5 ? bestMatch.index : -1;
+    };
+
+    let songIndex = findSongIndex(songs, songName);
+
+    // If not found in current list, search full list
+    if (songIndex === -1) {
+        songIndex = findSongIndex(originalSongs, songName);
+        if (songIndex !== -1) {
+            // Add to current list only if not already present
+            const songToAdd = originalSongs[songIndex];
+            const existsInSongs = songs.some(s => s.title === songToAdd.title);
+            if (!existsInSongs) {
+                songs.push(songToAdd);
+                songIndex = songs.length - 1;
+                populatePlaylist();
+            } else {
+                songIndex = songs.findIndex(s => s.title === songToAdd.title);
+            }
+        }
+    }
+
+    if (songIndex !== -1) {
+        loadSong(songIndex).then(() => {
+            audio.play().then(() => {
+                updatePlayPauseUI(true);
+                showToast(`Now Playing: ${songs[songIndex].title}`);
+                if (isVoiceFeedbackEnabled) speak(`Playing ${songs[songIndex].title}`);
+            }).catch(e => {
+                console.error("Play error:", e);
+                showToast("Failed to play the song");
+                if (isVoiceFeedbackEnabled) speak("Failed to play the song");
+            });
+        }).catch(e => {
+            console.error("Load error:", e);
+            showToast("Error loading song");
+            if (isVoiceFeedbackEnabled) speak("Error loading song");
+        });
+    } else {
+        // Suggest similar songs with scoring
+        const closeMatches = originalSongs
+            .map(song => {
+                const cleanTitle = song.title.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+                const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 1);
+                const queryWords = songName.split(/\s+/).filter(w => w.length > 1);
+                const matchingWords = queryWords.filter(qw => titleWords.includes(qw)).length;
+                const distance = levenshteinDistance(songName, cleanTitle);
+                const maxLen = Math.max(songName.length, cleanTitle.length);
+                const similarity = 1 - (distance / maxLen);
+                const score = (matchingWords * 10) + (similarity * 3);
+                return { title: song.title, score };
+            })
+            .filter(match => match.score >= 5) // Minimum score threshold for suggestions
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3) // Limit to top 3 suggestions
+            .map(match => match.title);
+
+        if (closeMatches.length > 0) {
+            const suggestionText = `Did you mean: ${closeMatches.join(", ")}? Try saying the full name.`;
+            showToast(`Song "${songName}" not found. ${suggestionText}`);
+            if (isVoiceFeedbackEnabled) speak(`Song ${songName} not found. ${suggestionText}`);
+        } else {
+            showToast(`Song "${songName}" not found. No similar songs available.`);
+            if (isVoiceFeedbackEnabled) speak(`Song ${songName} not found. No similar songs available.`);
+        }
+    }
+}
+
+// ... (Rest of the code remains unchanged)
+
 document.addEventListener("keydown", (e) => {
     switch (e.key) {
         case " ":
@@ -1411,6 +1563,10 @@ document.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("unload", () => {
+    releaseWakeLock();
+    if ("mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "paused";
+    }
     if (sleepTimerInterval) clearInterval(sleepTimerInterval);
     if (wakeRecognition) wakeRecognition.stop();
     window.speechSynthesis.cancel();
@@ -1462,36 +1618,33 @@ function debounce(func, wait) {
     };
 }
 
-// --- New Additions for Lock Screen Playback ---
-
-// Visibility Change Handling
+// Lock Screen Playback Enhancements
 document.addEventListener("visibilitychange", () => {
     console.log("Visibility state:", document.visibilityState);
     if (document.visibilityState === "hidden" && !audio.paused) {
-        // Ensure playback continues when screen locks
         if ("mediaSession" in navigator) {
             navigator.mediaSession.playbackState = "playing";
         }
     } else if (document.visibilityState === "visible" && !audio.paused) {
-        safePlay(); // Resume if interrupted
+        safePlay();
     }
 });
 
-// Service Worker Messaging for Playback Continuity
 navigator.serviceWorker?.addEventListener("message", (event) => {
     if (event.data.type === "AUDIO_FETCHED") {
         console.log("Service Worker: Audio fetched:", event.data.url);
         if (!audio.paused && "mediaSession" in navigator) {
+            // ... (Previous code up to the cutoff point remains the same)
+
+// Continuing from the navigator.serviceWorker message handler
             navigator.mediaSession.playbackState = "playing";
         }
     }
 });
 
-// Optional Wake Lock for Continuous Playback (if supported)
-// --- Continuation of New Additions for Lock Screen Playback ---
-
-// Optional Wake Lock for Continuous Playback (if supported)
+// Wake Lock Implementation
 let wakeLock = null;
+
 async function requestWakeLock() {
     if ("wakeLock" in navigator && "request" in navigator.wakeLock) {
         try {
@@ -1592,7 +1745,7 @@ audio?.addEventListener("canplay", () => {
     equalizer.style.opacity = "1";
 });
 
-// Preload Next Song More Aggressively
+// Preload Next Song
 function preloadNextSong() {
     const nextIndex = repeatMode === 1 ? currentSong : (currentSong + 1) % songs.length;
     if (nextIndex !== currentSong && nextIndex < songs.length) {
@@ -1642,7 +1795,67 @@ window.addEventListener("unload", () => {
     if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "paused";
     }
+    if (sleepTimerInterval) clearInterval(sleepTimerInterval);
+    if (wakeRecognition) wakeRecognition.stop();
+    window.speechSynthesis.cancel();
 });
 
 // Debug Logging for Lock Screen Issues
 console.log("Music interface initialized with lock screen support on", new Date().toLocaleString());
+
+// Prevent Background Playback Issues on iOS
+audio?.addEventListener("suspend", () => {
+    console.log("Audio suspended, attempting to resume...");
+    if (!audio.paused) {
+        setTimeout(() => safePlay(), 1000);
+    }
+});
+
+// Handle Double Tap for Next/Previous on Mobile
+let lastTap = 0;
+player?.addEventListener("touchend", (e) => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    if (tapLength < 300 && tapLength > 0) {
+        // Double tap
+        const touchX = e.changedTouches[0].clientX;
+        const playerWidth = player.offsetWidth;
+        if (touchX < playerWidth / 2) {
+            prevBtn.click(); // Left side for previous
+        } else {
+            nextBtn.click(); // Right side for next
+        }
+    }
+    lastTap = currentTime;
+});
+
+// Accessibility Enhancements
+audio?.setAttribute("aria-label", "Audio Player");
+playBtn?.setAttribute("aria-label", "Play");
+pauseBtn?.setAttribute("aria-label", "Pause");
+nextBtn?.setAttribute("aria-label", "Next Song");
+prevBtn?.setAttribute("aria-label", "Previous Song");
+seekBar?.setAttribute("aria-label", "Seek Bar");
+volumeControl?.setAttribute("aria-label", "Volume Control");
+
+// Ensure focus management for accessibility
+sidebarLinks.forEach(link => {
+    link.addEventListener("focus", () => {
+        if (sidebar) sidebar.style.transform = "translateX(0)";
+    });
+});
+
+// Handle Page Visibility for Background Playback
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && !audio.paused) {
+        console.log("Page hidden, ensuring playback continues...");
+        if ("mediaSession" in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+        }
+    } else if (document.visibilityState === "visible" && !audio.paused) {
+        console.log("Page visible, resuming if needed...");
+        safePlay();
+    }
+});
+
+console.log("Script fully loaded and initialized.");
