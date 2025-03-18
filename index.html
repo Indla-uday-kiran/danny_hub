@@ -3,14 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; media-src 'self' https:; script-src 'self'; style-src 'self'; img-src 'self' data:;">
     <title>Danny Hub</title>
     <link rel="stylesheet" href="css_folder/style.css">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="images/logo3.png" type="image/png">
-    <link rel="apple-touch-icon" href="images/logo3.png">
-    <link rel="preconnect" href="/songs">
-    <link rel="preconnect" href="/images">
+    
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -47,15 +42,14 @@
 
     <!-- Sidebar Toggle Button -->
     <div id="menu-btn">☰</div>
-    <a href="images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg"></a>
-
+<a href="images/Chuttamalle-From-Devara-Part-1-Telugu-2024-20240805181008-500x500.jpg"></a>
     <!-- Home Page Section -->
     <div id="home" class="home-page" style="display: none;">
         <header class="home-header">
             <img src="images/mylogo.png" alt="Music Hub Logo" class="home-emblem" id="emblem-img" loading="lazy">
             <h1>INDLA UDAY KIRAN</h1>
         </header>
-        <p class="home-description">Your premier destination for discovering, curating, and enjoying your favorite tracks with seamless playback and personalized features.</p>
+        <p class="home-description">  Your premier destination for discovering, curating, and enjoying your favorite tracks with seamless playback and personalized features.</p>
         <div class="featured-playlists">
             <h3>Featured Playlists</h3>
             <ul>
@@ -81,9 +75,7 @@
             <button id="like-btn" title="Like">♡</button>
         </div>
         
-        <audio id="audio" preload="auto">
-            Your browser does not support the audio element.
-        </audio>
+        <audio id="audio" preload="auto"></audio>
 
         <div class="timeline">
             <span id="current-time">0:00</span>
@@ -151,46 +143,49 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td>Voice Command Mode</td><td>.</td><td>"danny" / "hey danny" / "danny wakeup" / "danny active" / "danny start"</td></tr>
-                    <tr><td>Show Shortcuts</td><td>Ctrl+Alt+/</td><td>"danny help" / "danny commands" / "danny shortcuts"</td></tr>
-                    <tr><td>Hide Shortcuts</td><td>Esc (Modal Click)</td><td>"danny hide shortcuts" / "danny close shortcuts"</td></tr>
-                    <tr><td>Voice Feedback On</td><td>-</td><td>"danny voice on" / "danny enable voice" / "danny on voice feedback"</td></tr>
-                    <tr><td>Voice Feedback Off</td><td>-</td><td>"danny voice off" / "danny disable voice" / "danny off voice feedback"</td></tr>
-                    <tr><td>Play</td><td>Space (if paused)</td><td>"danny play" / "danny start" / "danny resume"</td></tr>
-                    <tr><td>Pause</td><td>Space (if playing)</td><td>"danny pause" / "danny stop" / "danny halt"</td></tr>
-                    <tr><td>Next Song</td><td>Arrow Right / Ctrl+Alt+N</td><td>"danny next" / "danny skip" / "danny forward"</td></tr>
-                    <tr><td>Previous Song</td><td>Arrow Left / Ctrl+Alt+P</td><td>"danny previous" / "danny back"</td></tr>
-                    <tr><td>Volume Up</td><td>Arrow Up</td><td>"danny volume up" / "danny louder"</td></tr>
-                    <tr><td>Volume Down</td><td>Arrow Down</td><td>"danny volume down" / "danny quieter"</td></tr>
-                    <tr><td>Mute</td><td>-</td><td>"danny mute" / "danny silent"</td></tr>
-                    <tr><td>Unmute</td><td>-</td><td>"danny unmute" / "danny sound on"</td></tr>
-                    <tr><td>Set Volume</td><td>-</td><td>"danny set volume [percentage]" (e.g., "danny set volume 50")</td></tr>
-                    <tr><td>Home Page</td><td>Ctrl+Alt+H</td><td>"danny home" / "danny main"</td></tr>
-                    <tr><td>Back to Player</td><td>-</td><td>"danny player" / "danny back to player"</td></tr>
-                    <tr><td>Like Song</td><td>Ctrl+Alt+L</td><td>"danny like" / "danny favorite" / "danny heart"</td></tr>
-                    <tr><td>Repeat</td><td>Ctrl+Alt+R</td><td>"danny repeat" / "danny loop"</td></tr>
-                    <tr><td>Shuffle</td><td>Ctrl+Alt+S</td><td>"danny shuffle" / "danny random"</td></tr>
-                    <tr><td>Mini Player</td><td>Ctrl+Alt+M</td><td>"danny mini" / "danny mini player"</td></tr>
-                    <tr><td>Theme Toggle</td><td>Ctrl+Alt+T</td><td>"danny theme" / "danny mode"</td></tr>
-                    <tr><td>Search</td><td>-</td><td>"danny search" / "danny find"</td></tr>
-                    <tr><td>Add to Queue</td><td>-</td><td>"danny queue [song name]" (e.g., "danny queue Chuttamalle")</td></tr>
-                    <tr><td>Clear Queue</td><td>-</td><td>"danny clear queue" / "danny empty queue"</td></tr>
-                    <tr><td>Rewind</td><td>Ctrl+Alt+W</td><td>"danny rewind" / "danny rewind [seconds]" (e.g., "danny rewind 10")</td></tr>
-                    <tr><td>Fast Forward</td><td>Ctrl+Alt+F</td><td>"danny fast forward" / "danny fast forward [seconds]" (e.g., "danny fast forward 10")</td></tr>
-                    <tr><td>Restart Song</td><td>Ctrl+Alt+Z</td><td>"danny restart" / "danny replay"</td></tr>
-                    <tr><td>Open Library</td><td>Ctrl+Alt+B</td><td>"danny library" / "danny liked songs"</td></tr>
-                    <tr><td>Open Sidebar</td><td>Ctrl+Alt+A</td><td>"danny sidebar" / "danny menu"</td></tr>
-                    <tr><td>Close Sidebar</td><td>Ctrl+Alt+C</td><td>"danny close sidebar"</td></tr>
-                    <tr><td>Reset Mini Player</td><td>Ctrl+Alt+X</td><td>"danny reset" / "danny reset mini"</td></tr>
-                    <tr><td>What’s Playing</td><td>-</td><td>"danny what is playing" / "danny now playing" / "danny current song"</td></tr>
-                    <tr><td>Time Left</td><td>-</td><td>"danny time left" / "danny time remaining" / "danny how much time is left"</td></tr>
-                    <tr><td>Song Duration</td><td>-</td><td>"danny duration" / "danny song length" / "danny what’s the duration"</td></tr>
-                    <tr><td>List Queue</td><td>-</td><td>"danny list queue" / "danny what’s in queue" / "danny queue list"</td></tr>
-                    <tr><td>Filter by Category</td><td>-</td><td>"danny filter [category]" (e.g., "danny filter pop", "danny filter all")</td></tr>
-                    <tr><td>Set Sleep Timer</td><td>-</td><td>"danny set sleep timer [minutes]" / "danny sleep timer [minutes]" / "danny sleep [minutes]" (e.g., "danny sleep timer 30")</td></tr>
-                    <tr><td>Cancel Sleep Timer</td><td>-</td><td>"danny cancel sleep timer" / "danny cancel sleep" / "danny cancel"</td></tr>
-                    <tr><td>Set Playback Speed</td><td>-</td><td>"danny set speed [value]" (e.g., "danny set speed 1.5")</td></tr>
-                    <tr><td>Play Specific Song</td><td>-</td><td>"danny play [song name]" (e.g., "danny play Chuttamalle")</td></tr>
+                <!-- <a href=""></a> -->
+                        <tr><th>Action</th><th>Shortcut</th><th>Voice Command</th></tr>
+                        <tr><td>Voice Command Mode</td><td>.</td><td>"danny" / "hey danny" / "danny wakeup" / "danny active" / "danny start"</td></tr>
+                        <tr><td>Show Shortcuts</td><td>Ctrl+Alt+/</td><td>"danny help" / "danny commands" / "danny shortcuts"</td></tr>
+                        <tr><td>Hide Shortcuts</td><td>Esc (Modal Click)</td><td>"danny hide shortcuts" / "danny close shortcuts"</td></tr>
+                        <tr><td>Voice Feedback On</td><td>-</td><td>"danny voice on" / "danny enable voice" / "danny on voice feedback"</td></tr>
+                        <tr><td>Voice Feedback Off</td><td>-</td><td>"danny voice off" / "danny disable voice" / "danny off voice feedback"</td></tr>
+                        <tr><td>Play</td><td>Space (if paused)</td><td>"danny play" / "danny start" / "danny resume"</td></tr>
+                        <tr><td>Pause</td><td>Space (if playing)</td><td>"danny pause" / "danny stop" / "danny halt"</td></tr>
+                        <tr><td>Next Song</td><td>Arrow Right / Ctrl+Alt+N</td><td>"danny next" / "danny skip" / "danny forward"</td></tr>
+                        <tr><td>Previous Song</td><td>Arrow Left / Ctrl+Alt+P</td><td>"danny previous" / "danny back"</td></tr>
+                        <tr><td>Volume Up</td><td>Arrow Up</td><td>"danny volume up" / "danny louder"</td></tr>
+                        <tr><td>Volume Down</td><td>Arrow Down</td><td>"danny volume down" / "danny quieter"</td></tr>
+                        <tr><td>Mute</td><td>-</td><td>"danny mute" / "danny silent"</td></tr>
+                        <tr><td>Unmute</td><td>-</td><td>"danny unmute" / "danny sound on"</td></tr>
+                        <tr><td>Set Volume</td><td>-</td><td>"danny set volume [percentage]" (e.g., "danny set volume 50")</td></tr>
+                        <tr><td>Home Page</td><td>Ctrl+Alt+H</td><td>"danny home" / "danny main"</td></tr>
+                        <tr><td>Back to Player</td><td>-</td><td>"danny player" / "danny back to player"</td></tr>
+                        <tr><td>Like Song</td><td>Ctrl+Alt+L</td><td>"danny like" / "danny favorite" / "danny heart"</td></tr>
+                        <tr><td>Repeat</td><td>Ctrl+Alt+R</td><td>"danny repeat" / "danny loop"</td></tr>
+                        <tr><td>Shuffle</td><td>Ctrl+Alt+S</td><td>"danny shuffle" / "danny random"</td></tr>
+                        <tr><td>Mini Player</td><td>Ctrl+Alt+M</td><td>"danny mini" / "danny mini player"</td></tr>
+                        <tr><td>Theme Toggle</td><td>Ctrl+Alt+T</td><td>"danny theme" / "danny mode"</td></tr>
+                        <tr><td>Search</td><td>-</td><td>"danny search" / "danny find"</td></tr>
+                        <tr><td>Add to Queue</td><td>-</td><td>"danny queue [song name]" (e.g., "danny queue Chuttamalle")</td></tr>
+                        <tr><td>Clear Queue</td><td>-</td><td>"danny clear queue" / "danny empty queue"</td></tr>
+                        <tr><td>Rewind</td><td>Ctrl+Alt+W</td><td>"danny rewind" / "danny rewind [seconds]" (e.g., "danny rewind 10")</td></tr>
+                        <tr><td>Fast Forward</td><td>Ctrl+Alt+F</td><td>"danny fast forward" / "danny fast forward [seconds]" (e.g., "danny fast forward 10")</td></tr>
+                        <tr><td>Restart Song</td><td>Ctrl+Alt+Z</td><td>"danny restart" / "danny replay"</td></tr>
+                        <tr><td>Open Library</td><td>Ctrl+Alt+B</td><td>"danny library" / "danny liked songs"</td></tr>
+                        <tr><td>Open Sidebar</td><td>Ctrl+Alt+A</td><td>"danny sidebar" / "danny menu"</td></tr>
+                        <tr><td>Close Sidebar</td><td>Ctrl+Alt+C</td><td>"danny close sidebar"</td></tr>
+                        <tr><td>Reset Mini Player</td><td>Ctrl+Alt+X</td><td>"danny reset" / "danny reset mini"</td></tr>
+                        <tr><td>What’s Playing</td><td>-</td><td>"danny what is playing" / "danny now playing" / "danny current song"</td></tr>
+                        <tr><td>Time Left</td><td>-</td><td>"danny time left" / "danny time remaining" / "danny how much time is left"</td></tr>
+                        <tr><td>Song Duration</td><td>-</td><td>"danny duration" / "danny song length" / "danny what’s the duration"</td></tr>
+                        <tr><td>List Queue</td><td>-</td><td>"danny list queue" / "danny what’s in queue" / "danny queue list"</td></tr>
+                        <tr><td>Filter by Category</td><td>-</td><td>"danny filter [category]" (e.g., "danny filter pop", "danny filter all")</td></tr>
+                        <tr><td>Set Sleep Timer</td><td>-</td><td>"danny set sleep timer [minutes]" / "danny sleep timer [minutes]" / "danny sleep [minutes]" (e.g., "danny sleep timer 30")</td></tr>
+                        <tr><td>Cancel Sleep Timer</td><td>-</td><td>"danny cancel sleep timer" / "danny cancel sleep" / "danny cancel"</td></tr>
+                        <tr><td>Set Playback Speed</td><td>-</td><td>"danny set speed [value]" (e.g., "danny set speed 1.5")</td></tr>
+                        <tr><td>Play Specific Song</td><td>-</td><td>"danny play [song name]" (e.g., "danny play Chuttamalle")</td></tr>
+                
                 </tbody>
             </table>
         </div>
@@ -202,12 +197,6 @@
     </div>
 
     <h1>DANNY HUB</h1>
-    
-    <noscript>
-        <div style="text-align: center; padding: 20px; color: #fff; background: #000;">
-            <p>This application requires JavaScript to function. Please enable JavaScript in your browser settings.</p>
-        </div>
-    </noscript>
     
     <script src="javascript/script.js"></script>
 </body>
